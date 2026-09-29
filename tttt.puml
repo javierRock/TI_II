@@ -1,0 +1,1030 @@
+' =====================================================================
+' MODELO DE DOMINIO - DDD
+' Sistema de Gestion de Prestamos de Bienes
+' Escuela Profesional de Ciencia de la Computacion - UNSA
+' Version 6
+'
+' Alcance de la entrega: modelo de dominio dividido en agregados,
+' modulos, contextos delimitados y subdominios, con practicas DDD.
+'
+' CAMBIOS RESPECTO A v5 (ver PDF de analisis para el detalle completo):
+' 1. CategoriaBien deja de ser un enum de valores fijos (que asumia
+'    nombres/lugares no confirmados aun por la escuela) y pasa a ser
+'    una clase/catalogo (TipoBien "0..*" --> "1" CategoriaBien). Asi
+'    el criterio real de categorizacion se define despues, como dato,
+'    sin tocar el modelo ni el codigo generado desde el.
+' 2. Mapa de contextos: corregido el sentido de BC-02->BC-01 y agregadas
+'    las relaciones BC-01->BC-02 y BC-02->BC-04 que faltaban.
+' 3. Corregido el sentido de navegacion Garantia->Prestamo e
+'    Incidencia->Prestamo (el que tiene el identificador foraneo es
+'    quien "conoce" al otro, no al reves).
+' 4. Corregida la multiplicidad RecordAcademico 0..1 -- 1 Persona (no
+'    toda Persona tiene un RecordAcademico, solo quienes son
+'    estudiantes).
+' 6. FichaBien deja de depender de datos bibliograficos/tecnicos fijos.
+'    Cada TipoBien puede definir sus propias CaracteristicaDefinida y
+'    cada FichaBien almacena sus ValorCaracteristica. Asi el catalogo
+'    puede adaptarse a los bienes reales de la escuela sin asumir
+'    libros, ropa, mobiliario, equipos u otras categorias concretas.
+' 7. Se conserva JuegoAccesorios porque controla elementos entregados y
+'    recibidos durante un prestamo; no representa una categoria de bien.
+' 5. AtribucionAdministrativa: se agrega la referencia a la atribucion
+'    otorgante (cadena de delegacion) y una dependencia explicita hacia
+'    PoliticaDeRoles, para dejar claro donde se valida que un
+'    estudiante nunca puede recibirla.
+' =====================================================================
+
+
+' =====================================================================
+' DIAGRAMA 1 - SUBDOMINIOS Y MAPA DE CONTEXTOS
+' =====================================================================
+@startuml mapa-de-contextos
+skinparam backgroundColor white
+title "Subdominios y Mapa de Contextos\nSistema de Prestamos de Bienes - EPCC UNSA"
+
+skinparam shadowing false
+skinparam componentStyle rectangle
+skinparam DefaultFontName Arial
+skinparam ArrowColor #555555
+
+package "SUBDOMINIO PRINCIPAL (Core)" #F2F2F2 {
+  [BC-04 Politicas de Prestamo]
+  [BC-05 Reservas]
+  [BC-06 Prestamos]
+}
+
+package "SUBDOMINIO DE SOPORTE" #F9F9F9 {
+  [BC-02 Vinculacion Academica]
+  [BC-03 Catalogo e Inventario]
+  [BC-07 Garantias]
+  [BC-08 Incidencias]
+  [BC-09 Sanciones]
+}
+
+package "SUBDOMINIO GENERICO" #FFFFFF {
+  [BC-01 Identidad y Acceso]
+  [BC-10 Auditoria e Historial]
+}
+
+[BC-01 Identidad y Acceso] --> [BC-02 Vinculacion Academica]
+[BC-02 Vinculacion Academica] --> [BC-01 Identidad y Acceso]
+[BC-02 Vinculacion Academica] --> [BC-04 Politicas de Prestamo]
+[BC-01 Identidad y Acceso] --> [BC-05 Reservas]
+[BC-01 Identidad y Acceso] --> [BC-06 Prestamos]
+[BC-04 Politicas de Prestamo] --> [BC-05 Reservas]
+[BC-04 Politicas de Prestamo] --> [BC-06 Prestamos]
+[BC-03 Catalogo e Inventario] --> [BC-05 Reservas]
+[BC-03 Catalogo e Inventario] --> [BC-06 Prestamos]
+[BC-05 Reservas] --> [BC-06 Prestamos]
+[BC-06 Prestamos] --> [BC-07 Garantias]
+[BC-06 Prestamos] --> [BC-08 Incidencias]
+[BC-08 Incidencias] --> [BC-09 Sanciones]
+[BC-09 Sanciones] --> [BC-05 Reservas]
+[BC-09 Sanciones] --> [BC-06 Prestamos]
+[BC-06 Prestamos] --> [BC-10 Auditoria e Historial]
+
+legend bottom
+|= Direccion de la flecha |= Significado |
+| A --> B | A es upstream (proveedor del modelo), B es downstream (consumidor) |
+endlegend
+
+note as N1
+  **Alcance del sistema**
+  El sistema pertenece unicamente a la Escuela Profesional
+  de Ciencia de la Computacion. Toda persona registrada esta
+  vinculada a la EPCC y tiene exactamente un rol base.
+
+  **Nucleo compartido (SK)**
+  Solo cruzan frontera: identificadores, CUI, Dinero,
+  IntervaloTiempo y el enum Rol.
+
+  **Consistencia**
+  Dentro del agregado: inmediata.
+  Entre agregados: referencia por identificador y eventos de dominio.
+
+  **Doble relacion BC-01 <-> BC-02**
+  BC-01 provee identidad/CUI que BC-02 referencia (RecordAcademico
+  guarda personaId). BC-02, a su vez, provee la CondicionAcademica
+  que BC-01 y BC-04 consumen para decidir habilitacion y politica
+  aplicable. Son dos flujos de datos distintos, no una relacion
+  ciclica sobre el mismo dato.
+end note
+
+@enduml
+
+
+' =====================================================================
+' DIAGRAMA 2 - MODELO DE DOMINIO
+' =====================================================================
+@startuml modelo-de-dominio
+skinparam backgroundColor white
+title "Modelo de Dominio DDD\nSistema de Gestion de Prestamos de Bienes - EPCC UNSA (v7)"
+
+skinparam shadowing false
+skinparam packageStyle rectangle
+skinparam classAttributeIconSize 0
+skinparam ArrowColor #555555
+skinparam ClassBorderColor #444444
+skinparam PackageBorderColor #444444
+skinparam DefaultFontName Arial
+skinparam PackageFontName Arial
+skinparam nodesep 30
+skinparam ranksep 50
+
+legend
+|= Estereotipo |= Significado |
+| <<Contexto Delimitado>> | Limite de aplicabilidad de un modelo |
+| <<Agregado Raiz>> | Unica puerta de entrada y frontera de consistencia |
+| <<Entidad>> | Identidad propia, vive dentro de un agregado |
+| <<VO>> | Objeto de valor: inmutable, sin identidad |
+| <<Enumeracion>> | Conjunto cerrado de valores del dominio |
+| <<Servicio de Dominio>> | Logica que no pertenece a un solo agregado |
+| <<Modulo>> | Agrupacion interna del modelo |
+endlegend
+
+
+' =========================================================
+' SK - NUCLEO COMPARTIDO
+' =========================================================
+package "SK NUCLEO COMPARTIDO <<Modulo>>" {
+
+  class Identificadores <<VO>> {
+    PersonaId
+    CuentaId
+    UnidadFisicaId
+    TipoBienId
+    CategoriaBienId
+    PoliticaId
+    ReservaId
+    PrestamoId
+    IncidenciaId
+  }
+
+  class CUI <<VO>> {
+    +valor: String
+    .. Codigo Unico de Identificacion UNSA ..
+    +esValido(): Boolean
+  }
+
+  class Dinero <<VO>> {
+    +monto: Decimal
+    +moneda: String
+    +esNoNegativo(): Boolean
+  }
+
+  class IntervaloTiempo <<VO>> {
+    +inicio: DateTime
+    +fin: DateTime
+    .. semiabierto [inicio, fin) ..
+    +esValido(): Boolean
+    +solapaCon(otro): Boolean
+    +contiene(instante): Boolean
+  }
+
+  enum Rol <<Enumeracion>> {
+    ESTUDIANTE
+    DOCENTE
+    PERSONAL_ADMINISTRATIVO
+  }
+
+  enum UnidadTiempo <<Enumeracion>> {
+    HORAS
+    DIAS
+  }
+}
+
+
+' =========================================================
+' BC-01 IDENTIDAD Y ACCESO
+' =========================================================
+package "BC-01 IDENTIDAD Y ACCESO <<Contexto Delimitado>>\nSubdominio Generico" {
+
+  class Persona <<Agregado Raiz>> {
+    +idPersona: PersonaId
+    +cui: CUI
+    +documento: DocumentoIdentidad
+    +nombreCompleto: String
+    +correoInstitucional: Correo
+    +rolBase: Rol
+    +vinculacion: VinculacionEscuela
+    +estado: EstadoPersona
+    __ comportamiento __
+    +registrarCuenta(usuario, hash): Cuenta
+    +asignarRolBase(rol, perfil)
+    +recibirAtribucionAdmin(otorganteId): AtribucionAdministrativa
+    +delegarAtribucionAdmin(receptorId)
+    +revocarAtribucionAdmin(motivo)
+    +esAdministradorEn(instante): Boolean
+    +puedeSolicitarPrestamo(instante): Boolean
+    +desactivar()
+  }
+
+  class Cuenta <<Entidad>> {
+    +idCuenta: CuentaId
+    +nombreUsuario: String
+    +hashContrasena: String
+    +estado: EstadoCuenta
+    +ultimoAcceso: DateTime
+    --
+    +activar()
+    +desactivar()
+    +estaHabilitada(): Boolean
+  }
+
+  class AtribucionAdministrativa <<Entidad>> {
+    +idAtribucion: UUID
+    +otorgadaPorId: PersonaId
+    +otorganteAtribucionId: UUID
+    +fechaOtorgamiento: DateTime
+    +fechaRevocacion: DateTime
+    +puedeDelegar: Boolean
+    +motivoRevocacion: String
+    +estado: EstadoAtribucion
+    --
+    +estaVigenteEn(instante): Boolean
+    +revocar(motivo, fecha)
+  }
+
+  abstract class PerfilSolicitante <<Entidad>> {
+    +idPerfil: UUID
+    +escuela: String
+    +vigente: Boolean
+    --
+    {abstract} +habilitadoParaSolicitar(): Boolean
+    {abstract} +rolAsociado(): Rol
+  }
+
+  class PerfilEstudiante <<Entidad>> {
+    +planEstudios: String
+    +semestre: Integer
+    +condicionAcademica: CondicionAcademica
+  }
+
+  class PerfilDocente <<Entidad>> {
+    +especialidad: String
+    +categoriaDocente: String
+    +vinculacionContractual: String
+  }
+
+  class PerfilPersonalAdministrativo <<Entidad>> {
+    +dependenciaOficina: String
+    +cargo: String
+  }
+
+  class DocumentoIdentidad <<VO>> {
+    +tipo: String
+    +numero: String
+  }
+
+  class Correo <<VO>> {
+    +direccion: String
+  }
+
+  class VinculacionEscuela <<VO>> {
+    +escuela: String
+    +esEPCC: Boolean
+    +fechaInicio: Date
+    +fechaFin: Date
+  }
+
+  enum EstadoPersona <<Enumeracion>> {
+    ACTIVA
+    INACTIVA
+  }
+
+  enum EstadoCuenta <<Enumeracion>> {
+    ACTIVA
+    INACTIVA
+  }
+
+  enum EstadoAtribucion <<Enumeracion>> {
+    VIGENTE
+    REVOCADA
+  }
+}
+
+
+' =========================================================
+' BC-02 VINCULACION ACADEMICA
+' =========================================================
+package "BC-02 VINCULACION ACADEMICA <<Contexto Delimitado>>\nSubdominio de Soporte" {
+
+  class RecordAcademico <<Agregado Raiz>> {
+    +idRecord: UUID
+    +personaId: PersonaId
+    +cui: CUI
+    +escuelaProfesional: String
+    +planEstudios: String
+    +situacion: SituacionAcademica
+    +fechaEgreso: Date
+    __ comportamiento __
+    +matriculaVigente(periodo): Matricula
+    +estaMatriculadoEnComputacion(periodo): Boolean
+    +tieneCuartaMatricula(periodo): Boolean
+    +esEgresadoOGraduado(): Boolean
+    +condicionActual(instante): CondicionAcademica
+  }
+
+  class Matricula <<Entidad>> {
+    +idMatricula: UUID
+    +semestre: Integer
+    +numeroVezMatricula: Integer
+    +creditosInscritos: Integer
+    +estado: EstadoMatricula
+    --
+    +esCuartaMatricula(): Boolean
+    +estaVigenteEn(instante): Boolean
+  }
+
+  class PeriodoAcademico <<Agregado Raiz>> {
+    +idPeriodo: UUID
+    +anio: Integer
+    +ciclo: String
+    +intervalo: IntervaloTiempo
+    +fechaCierreDevoluciones: Date
+    +diasNoHabiles: List
+    --
+    +estaAbiertoEn(instante): Boolean
+    +esDiaHabil(fecha): Boolean
+    +limiteDevolucion(): Date
+  }
+
+  enum SituacionAcademica <<Enumeracion>> {
+    MATRICULADO
+    NO_MATRICULADO
+    EGRESADO
+    GRADUADO
+    RETIRADO
+    SUSPENDIDO
+  }
+
+  enum EstadoMatricula <<Enumeracion>> {
+    VIGENTE
+    ANULADA
+    CERRADA
+  }
+
+  enum CondicionAcademica <<Enumeracion>> {
+    REGULAR
+    CUARTA_MATRICULA
+    NO_MATRICULADO
+    EGRESADO_O_GRADUADO
+    FUERA_DE_LA_ESCUELA
+  }
+}
+
+' =========================================================
+' BC-03 CATALOGO E INVENTARIO
+' =========================================================
+package "BC-03 CATALOGO E INVENTARIO <<Contexto Delimitado>>\nSubdominio de Soporte" {
+
+  class TipoBien <<Agregado Raiz>> {
+    +idTipo: TipoBienId
+    +nombre: String
+    +categoriaId: CategoriaBienId
+    +esPrestable: Boolean
+    +estado: EstadoTipo
+    --
+    +definirCaracteristica(nombre, tipoDato, obligatoria): CaracteristicaDefinida
+    +desactivarCaracteristica(caracteristicaId)
+  }
+
+  class CategoriaBien <<Entidad>> {
+    +idCategoria: CategoriaBienId
+    +nombre: String
+    +descripcion: String
+    +estado: EstadoCategoria
+  }
+
+  class FichaBien <<Agregado Raiz>> {
+    +idFicha: UUID
+    +tipoBienId: TipoBienId
+    +nombre: String
+    +descripcion: String
+    +valoresCaracteristicas: List
+    +estado: EstadoFicha
+    --
+    +asignarCaracteristica(caracteristicaId, valor): ValorCaracteristica
+    +altaUnidad(codigo, ubicacion): UnidadFisica
+    +unidadesDisponibles(): List
+    +desactivar()
+  }
+
+  class CaracteristicaDefinida <<Entidad>> {
+    +idCaracteristica: UUID
+    +nombre: String
+    +tipoDato: TipoDatoCaracteristica
+    +obligatoria: Boolean
+    +estado: EstadoCaracteristica
+  }
+
+  class ValorCaracteristica <<VO>> {
+    +valor: String
+  }
+
+  class UnidadFisica <<Entidad>> {
+    +idUnidad: UnidadFisicaId
+    +codigoInventario: CodigoInventario
+    +numeroSerie: String
+    +ubicacion: Ubicacion
+    +adscripcionCustodia: String
+    +condicionFisica: String
+    +accesorios: JuegoAccesorios
+    +fechaAdquisicion: Date
+    +estado: EstadoUnidad
+    --
+    +esElegibleParaPrestamo(): Boolean
+    +marcarPrestada()
+    +marcarDisponible()
+    +enviarAMantenimiento(motivo)
+    +darDeBaja(fecha, motivo)
+  }
+
+  class CodigoInventario <<VO>> {
+    +valor: String
+  }
+
+  class Ubicacion <<VO>> {
+    +ambiente: String
+    +referencia: String
+  }
+
+  class JuegoAccesorios <<VO>> {
+    +items: List
+    +estaCompleto(recibidos): Boolean
+  }
+
+  enum EstadoCategoria <<Enumeracion>> {
+    ACTIVA
+    INACTIVA
+  }
+
+  enum EstadoTipo <<Enumeracion>> {
+    ACTIVO
+    INACTIVO
+  }
+
+  enum EstadoFicha <<Enumeracion>> {
+    ACTIVA
+    INACTIVA
+  }
+
+  enum TipoDatoCaracteristica <<Enumeracion>> {
+    TEXTO
+    NUMERO
+    FECHA
+    BOOLEANO
+  }
+
+  enum EstadoCaracteristica <<Enumeracion>> {
+    ACTIVA
+    INACTIVA
+  }
+
+  enum EstadoUnidad <<Enumeracion>> {
+    DISPONIBLE
+    PRESTADA
+    MANTENIMIENTO
+    BAJA
+  }
+}
+
+
+' =========================================================
+' BC-04 POLITICAS DE PRESTAMO
+' =========================================================
+package "BC-04 POLITICAS DE PRESTAMO <<Contexto Delimitado>>\nSubdominio Principal" {
+
+  class PoliticaPrestamo <<Agregado Raiz>> {
+    +idPolitica: PoliticaId
+    +version: Integer
+    +criterio: CriterioAplicacion
+    +vigencia: IntervaloTiempo
+    +condiciones: CondicionesPrestamo
+    +estadoAprobacion: EstadoAprobacion
+    --
+    +aplicaA(rol, tipoBienId, condicionAcademica): Boolean
+    +estaVigenteEn(instante): Boolean
+    +publicarNuevaVersion(condiciones): PoliticaPrestamo
+    +tomarSnapshot(instante): PoliticaAplicada
+  }
+
+  class CriterioAplicacion <<VO>> {
+    +alcance: AlcancePolitica
+    +rol: Rol
+    +tipoBienId: TipoBienId
+    +condicionAcademica: CondicionAcademica
+    +especificidad(): Integer
+  }
+
+  class CondicionesPrestamo <<VO>> {
+    +limiteSimultaneo: Integer
+    +duracionMaxima: Integer
+    +unidadTiempo: UnidadTiempo
+    +modalidadUso: ModalidadUso
+    +garantiaExigible: Boolean
+    +permiteRenovacion: Boolean
+    +limiteRenovaciones: Integer
+    +toleranciaRetraso: Decimal
+    +tarifaDiaRetraso: Dinero
+    +diasBloqueoPorRetraso: Integer
+  }
+
+  class PoliticaAplicada <<VO>> {
+    +politicaId: PoliticaId
+    +version: Integer
+    +condiciones: CondicionesPrestamo
+    +fechaResolucion: DateTime
+    .. snapshot inmutable, sin efecto retroactivo ..
+  }
+
+  enum AlcancePolitica <<Enumeracion>> {
+    GENERAL
+    ROL
+    ROL_TIPO_BIEN
+    ROL_CONDICION_ACADEMICA
+  }
+
+  enum ModalidadUso <<Enumeracion>> {
+    EN_SITIO
+    RETIRO
+  }
+
+  enum EstadoAprobacion <<Enumeracion>> {
+    BORRADOR
+    VIGENTE
+    DEROGADA
+  }
+}
+
+
+
+' =========================================================
+' BC-05 RESERVAS
+' =========================================================
+package "BC-05 RESERVAS <<Contexto Delimitado>>\nSubdominio Principal" {
+
+  class Reserva <<Agregado Raiz>> {
+    +idReserva: ReservaId
+    +solicitanteId: PersonaId
+    +unidadId: UnidadFisicaId
+    +intervalo: IntervaloTiempo
+    +politicaAplicada: PoliticaAplicada
+    +fechaSolicitud: DateTime
+    +usoPrevisto: String
+    +estado: EstadoReserva
+    +motivoRechazo: String
+    +prestamoGeneradoId: PrestamoId
+    --
+    +confirmar(administradorId)
+    +rechazar(administradorId, motivo)
+    +cancelar(actorId)
+    +marcarAtendida(prestamoId)
+    +marcarVencida(instante)
+    +bloqueaIntervalo(): Boolean
+    +puedeOriginarPrestamo(instante): Boolean
+  }
+
+  enum EstadoReserva <<Enumeracion>> {
+    PENDIENTE
+    CONFIRMADA
+    RECHAZADA
+    CANCELADA
+    ATENDIDA
+    VENCIDA
+  }
+}
+
+
+
+
+' =========================================================
+' BC-06 PRESTAMOS
+' =========================================================
+package "BC-06 PRESTAMOS <<Contexto Delimitado>>\nSubdominio Principal" {
+
+  class Prestamo <<Agregado Raiz>> {
+    +idPrestamo: PrestamoId
+    +solicitanteId: PersonaId
+    +administradorId: PersonaId
+    +unidadId: UnidadFisicaId
+    +reservaOrigenId: ReservaId
+    +politicaAplicada: PoliticaAplicada
+    +plazo: IntervaloPrestamo
+    +entrega: ActaEntrega
+    +devolucion: ActaDevolucion
+    +estado: EstadoPrestamo
+    +fechaCierre: DateTime
+    +motivoCierre: String
+    --
+    +registrarEntrega(acta)
+    +renovar(nuevoVencimiento, administradorId): Renovacion
+    +registrarDevolucion(acta)
+    +cerrarPorPerdida(incidenciaId, motivo)
+    +estaAbierto(): Boolean
+    +estaVencidoEn(instante): Boolean
+    +vencimientoVigente(): DateTime
+    +consumeCupo(): Boolean
+  }
+
+  class Renovacion <<Entidad>> {
+    +idRenovacion: UUID
+    +secuencia: Integer
+    +vencimientoAnterior: DateTime
+    +vencimientoNuevo: DateTime
+    +administradorId: PersonaId
+    +fechaAutorizacion: DateTime
+  }
+
+  class IntervaloPrestamo <<VO>> {
+    +inicio: DateTime
+    +vencimiento: DateTime
+    +excedeDuracion(max, unidad): Boolean
+  }
+
+  class ActaEntrega <<VO>> {
+    +fechaHora: DateTime
+    +modalidadUso: ModalidadUso
+    +condicionEntrega: String
+    +accesoriosEntregados: JuegoAccesorios
+    +responsableId: PersonaId
+  }
+
+  class ActaDevolucion <<VO>> {
+    +fechaHoraReal: DateTime
+    +condicionDevolucion: String
+    +accesoriosRecibidos: JuegoAccesorios
+    +destinoUnidad: EstadoUnidad
+    +responsableId: PersonaId
+  }
+
+  enum EstadoPrestamo <<Enumeracion>> {
+    ACTIVO
+    VENCIDO
+    DEVUELTO
+    CERRADO_POR_PERDIDA
+  }
+}
+
+
+
+
+' =========================================================
+' BC-07 GARANTIAS
+' =========================================================
+package "BC-07 GARANTIAS <<Contexto Delimitado>>\nSubdominio de Soporte" {
+
+  class TipoGarantia <<Agregado Raiz>> {
+    +idTipoGarantia: UUID
+    +nombre: String
+    +esFisica: Boolean
+    +estado: EstadoTipoGarantia
+  }
+
+  class Garantia <<Agregado Raiz>> {
+    +idGarantia: UUID
+    +prestamoId: PrestamoId
+    +tipoGarantiaId: UUID
+    +descripcionReferencia: String
+    +fechaRegistro: DateTime
+    +responsableRecepcionId: PersonaId
+    +fechaLiberacion: DateTime
+    +responsableLiberacionId: PersonaId
+    +estado: EstadoGarantia
+    --
+    +liberar(responsableId, fecha)
+    +marcarPerdida(incidenciaId)
+    +estaVigente(): Boolean
+  }
+
+  enum EstadoGarantia <<Enumeracion>> {
+    VIGENTE
+    LIBERADA
+    PERDIDA
+  }
+
+  enum EstadoTipoGarantia <<Enumeracion>> {
+    ACTIVO
+    INACTIVO
+  }
+}
+
+
+' =========================================================
+' BC-08 INCIDENCIAS
+' =========================================================
+package "BC-08 INCIDENCIAS <<Contexto Delimitado>>\nSubdominio de Soporte" {
+
+  class Incidencia <<Agregado Raiz>> {
+    +idIncidencia: IncidenciaId
+    +prestamoId: PrestamoId
+    +unidadId: UnidadFisicaId
+    +tipo: TipoIncidencia
+    +descripcion: String
+    +fechaRegistro: DateTime
+    +informante: String
+    +responsableRegistroId: PersonaId
+    +resolucion: ResolucionIncidencia
+    +estado: EstadoIncidencia
+    --
+    +resolver(accionCorrectiva, responsableId, fecha)
+    +estaAbierta(): Boolean
+  }
+
+  class ResolucionIncidencia <<VO>> {
+    +accionCorrectiva: String
+    +fecha: DateTime
+    +responsableId: PersonaId
+  }
+
+  enum TipoIncidencia <<Enumeracion>> {
+    DANO
+    PERDIDA_BIEN
+    FALTA_ACCESORIOS
+    RETRASO_PROLONGADO
+    PERDIDA_GARANTIA
+  }
+
+  enum EstadoIncidencia <<Enumeracion>> {
+    ABIERTA
+    RESUELTA
+  }
+}
+
+
+' =========================================================
+' BC-09 SANCIONES
+' =========================================================
+package "BC-09 SANCIONES <<Contexto Delimitado>>\nSubdominio de Soporte" {
+
+  class Sancion <<Agregado Raiz>> {
+    +idSancion: UUID
+    +sancionadoId: PersonaId
+    +prestamoOrigenId: PrestamoId
+    +incidenciaId: IncidenciaId
+    +motivo: MotivoSancion
+    +fundamento: ReferenciaPolitica
+    +montoExigido: Dinero
+    +bloqueo: PeriodoBloqueo
+    +origen: OrigenSancion
+    +responsableRegistroId: PersonaId
+    +estado: EstadoSancion
+    --
+    +presentarApelacion(argumento, fecha): Apelacion
+    +resolverApelacion(resolucion, responsableId)
+    +registrarCumplimiento(cumplimiento)
+    +marcarCumplida()
+    +anular(motivo, responsableId)
+    +bloqueaEn(instante): Boolean
+    +saldoPendiente(): Dinero
+  }
+
+  class Apelacion <<Entidad>> {
+    +idApelacion: UUID
+    +fechaPresentacion: DateTime
+    +argumento: String
+    +resolucion: String
+    +fechaResolucion: DateTime
+    +suspendeBloqueo: Boolean
+  }
+
+  class Cumplimiento <<Entidad>> {
+    +idCumplimiento: UUID
+    +tipo: TipoCumplimiento
+    +monto: Dinero
+    +descripcionReposicion: String
+    +fecha: DateTime
+    +medioAcreditacion: String
+    +responsableRegistroId: PersonaId
+  }
+
+  class PeriodoBloqueo <<VO>> {
+    +inicio: DateTime
+    +fin: DateTime
+    +vigenteEn(instante): Boolean
+  }
+
+  class ReferenciaPolitica <<VO>> {
+    +politicaId: PoliticaId
+    +version: Integer
+    +clausula: String
+  }
+
+  enum MotivoSancion <<Enumeracion>> {
+    RETRASO
+    DANO
+    PERDIDA
+    OTRO
+  }
+
+  enum TipoCumplimiento <<Enumeracion>> {
+    PAGO
+    REPOSICION_DEL_BIEN
+    REPARACION
+  }
+
+  enum OrigenSancion <<Enumeracion>> {
+    AUTOMATICA
+    MANUAL
+  }
+
+  enum EstadoSancion <<Enumeracion>> {
+    PENDIENTE
+    APELADA
+    CUMPLIDA
+    ANULADA
+  }
+}
+
+
+
+' =========================================================
+' BC-10 AUDITORIA E HISTORIAL
+' =========================================================
+package "BC-10 AUDITORIA E HISTORIAL <<Contexto Delimitado>>\nSubdominio Generico" {
+
+  class EventoHistorial <<Agregado Raiz>> {
+    +idEvento: UUID
+    +actor: Actor
+    +contextoOrigen: String
+    +accion: String
+    +entidadAfectada: String
+    +registroAfectado: String
+    +fechaHora: DateTime
+    +resultado: ResultadoOperacion
+    +detalle: String
+    .. inmutable: no admite modificacion ni borrado ..
+  }
+
+  class Actor <<VO>> {
+    +personaId: PersonaId
+    +tipo: TipoActor
+    +descripcion: String
+  }
+
+  enum TipoActor <<Enumeracion>> {
+    USUARIO
+    PROCESO_AUTOMATICO
+  }
+
+  enum ResultadoOperacion <<Enumeracion>> {
+    EXITO
+    RECHAZO
+    ERROR
+  }
+}
+
+
+' =========================================================
+' SERVICIOS DE DOMINIO
+' =========================================================
+package "SERVICIOS DE DOMINIO <<Modulo>>" {
+
+  class VerificadorMatricula <<Servicio de Dominio>> {
+    +condicionDe(personaId, instante): CondicionAcademica
+    +estudianteHabilitado(personaId, instante): Boolean
+  }
+
+  class PoliticaDeRoles <<Servicio de Dominio>> {
+    +rolEsCompatible(persona, rol): Boolean
+    +puedeSerAdministrador(persona): Boolean
+    +puedeDelegar(otorgante, receptor, instante): Boolean
+  }
+
+  class ResolutorPolitica <<Servicio de Dominio>> {
+    +resolverPara(rol, tipoBienId, condicion, instante): PoliticaAplicada
+  }
+
+  class GestorDisponibilidad <<Servicio de Dominio>> {
+    +estaDisponible(unidadId, intervalo): Boolean
+    +haySolapamiento(unidadId, intervalo, exceptoReservaId): Boolean
+  }
+
+  class VerificadorCupo <<Servicio de Dominio>> {
+    +cupoDisponible(personaId, intervalo, limite): Boolean
+  }
+
+  class VerificadorBloqueo <<Servicio de Dominio>> {
+    +estaBloqueado(personaId, instante): Boolean
+  }
+
+  class ValidadorEntrega <<Servicio de Dominio>> {
+    +validarReserva(solicitud): ResultadoValidacion
+    +validarEntrega(solicitud): ResultadoValidacion
+    +validarRenovacion(solicitud): ResultadoValidacion
+  }
+
+  class CalculadorRetraso <<Servicio de Dominio>> {
+    +diasRetraso(prestamo, instante): Integer
+    +montoRetraso(prestamo, dias): Dinero
+  }
+
+  class GeneradorSanciones <<Servicio de Dominio>> {
+    +evaluarAlCerrar(prestamo, incidencias): List
+  }
+
+  class ResultadoValidacion <<VO>> {
+    +valido: Boolean
+    +motivos: List
+  }
+}
+
+
+' =========================================================
+' EVENTOS DE DOMINIO
+' =========================================================
+package "EVENTOS DE DOMINIO <<Modulo>>" {
+
+  class "Identidad y Academico" <<Evento de Dominio>> {
+    PersonaRegistrada
+    RolBaseAsignado
+    AtribucionAdminOtorgada
+    AtribucionAdminRevocada
+    CondicionAcademicaActualizada
+    EstudianteInhabilitado
+  }
+
+  class "Reserva y Prestamo" <<Evento de Dominio>> {
+    ReservaSolicitada
+    ReservaConfirmada
+    ReservaCancelada
+    ReservaVencida
+    PrestamoRegistrado
+    PrestamoRenovado
+    PrestamoVencido
+    BienDevuelto
+    PrestamoCerradoPorPerdida
+  }
+
+  class "Inventario, Garantia y Sancion" <<Evento de Dominio>> {
+    UnidadDadaDeBaja
+    PoliticaVersionada
+    GarantiaRegistrada
+    GarantiaLiberada
+    IncidenciaRegistrada
+    SancionRegistrada
+    BloqueoIniciado
+    BloqueoFinalizado
+  }
+}
+
+
+' =========================================================
+' RELACIONES
+' =========================================================
+
+' --- BC-01
+Persona "1" *-- "0..1" Cuenta
+Persona "1" *-- "0..1" PerfilSolicitante
+Persona "1" *-- "0..*" AtribucionAdministrativa
+PerfilSolicitante <|-- PerfilEstudiante
+PerfilSolicitante <|-- PerfilDocente
+PerfilSolicitante <|-- PerfilPersonalAdministrativo
+AtribucionAdministrativa "0..*" --> "0..1" AtribucionAdministrativa
+Persona ..> PoliticaDeRoles
+
+' --- BC-02
+RecordAcademico "1" *-- "0..*" Matricula
+RecordAcademico "0..1" --> "1" Persona
+Matricula "0..*" --> "1" PeriodoAcademico
+
+' --- BC-03
+FichaBien "1" *-- "0..*" UnidadFisica
+FichaBien "0..*" --> "1" TipoBien
+TipoBien "0..*" --> "1" CategoriaBien
+TipoBien "1" *-- "0..*" CaracteristicaDefinida
+FichaBien "1" *-- "0..*" ValorCaracteristica
+ValorCaracteristica "0..*" --> "1" CaracteristicaDefinida
+
+' --- BC-05
+Reserva "0..*" --> "1" Persona
+Reserva "0..*" --> "1" UnidadFisica
+Reserva "0..*" ..> "1" PoliticaPrestamo
+Reserva "0..1" --> "0..1" Prestamo
+
+' --- BC-06
+Prestamo "1" *-- "0..*" Renovacion
+Prestamo "0..*" --> "1" Persona
+Prestamo "0..*" --> "1" UnidadFisica
+Prestamo "0..*" ..> "1" PoliticaPrestamo
+
+' --- BC-07
+Garantia "0..1" --> "1" Prestamo
+Garantia "0..*" --> "1" TipoGarantia
+
+' --- BC-08
+Incidencia "0..*" --> "1" Prestamo
+Incidencia "0..*" --> "1" UnidadFisica
+
+' --- BC-09
+Sancion "1" *-- "0..1" Apelacion
+Sancion "1" *-- "0..*" Cumplimiento
+Incidencia "1" --> "0..*" Sancion
+Sancion "0..*" --> "1" Persona
+
+' --- BC-10
+EventoHistorial "0..*" --> "0..1" Persona
+
+
+
+@enduml
