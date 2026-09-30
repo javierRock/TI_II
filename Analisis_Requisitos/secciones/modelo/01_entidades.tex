@@ -1,0 +1,104 @@
+\section{Entidades y conceptos principales}
+\label{sec:entidades}
+
+\subsection{Persona}
+Representa a una persona natural vinculada a la Escuela, no a una empresa ni a un solicitante externo.
+
+\textbf{Atributos:} identificador, documento de identidad, nombre completo, correo, contacto, estado activo o inactivo y fecha de registro.
+
+\textbf{Reglas:} el documento es obligatorio y \'unico incluso si la persona est\'a inactiva. Se conserva un solo registro por persona para no fragmentar su historial. Una persona puede no tener cuenta todav\'ia. Desactivarla desactiva su cuenta e invalida sus sesiones, sin eliminar obligaciones pendientes.
+
+\subsection{Usuario}
+Representa la cuenta de acceso de una persona.
+
+\textbf{Atributos:} identificador, persona, rol, nombre de usuario, hash de contrase\~na, estado y fecha del \'ultimo acceso.
+
+\textbf{Reglas:} cada usuario pertenece a una persona; una persona tiene como m\'aximo una cuenta, activa o inactiva. El nombre de usuario es \'unico. Una cuenta activa exige una persona activa. La cuenta debe estar activa para solicitar o recibir bienes. Su desactivaci\'on no borra deudas, pr\'estamos ni sanciones.
+
+\subsection{Rol y perfiles}
+El rol define permisos y participa en la selecci\'on de pol\'iticas. Sus valores son administrador, docente y estudiante. Contiene identificador, nombre \'unico y descripci\'on.
+
+\textbf{PerfilEstudiante:} usuario, c\'odigo universitario \'unico, programa, plan de estudios, semestre y habilitaci\'on vigente. El semestre debe pertenecer al plan, sin imponer arbitrariamente un rango de 1 a 12.
+
+\textbf{PerfilDocente:} usuario, c\'odigo institucional \'unico, especialidad, vinculaci\'on con la Escuela y habilitaci\'on vigente.
+
+Cada perfil pertenece a una cuenta. Un usuario puede tener como m\'aximo un perfil de cada tipo; el perfil correspondiente al rol actual es obligatorio y debe estar habilitado para prestar. Un perfil de un rol anterior puede conservarse como antecedente, pero no concede permisos adicionales. El administrador no requiere un perfil de solicitante.
+
+\subsection{TipoBien}
+Clasifica las fichas del cat\'alogo. Sus atributos son identificador, nombre \'unico y descripci\'on. Los valores permitidos en esta versi\'on son libro, mesa de ping-pong, visor 3D, parlante y carrito para rob\'otica. No incluye computadoras ni una categor\'ia de recursos de laboratorio.
+
+\subsection{Bien}
+Es la ficha descriptiva de un t\'itulo, modelo u objeto del cat\'alogo; no representa por s\'i sola una unidad prestable.
+
+\textbf{Atributos comunes:} identificador, tipo de bien, nombre y descripci\'on.
+
+\textbf{Datos seg\'un el tipo:} t\'itulo, autor, edici\'on e ISBN para libros; marca y modelo para dispositivos cuando corresponda. No se exige fabricante a un libro ni ISBN a un parlante. Estos datos podr\'an implementarse como atributos opcionales o fichas especializadas durante el dise\~no l\'ogico.
+
+\textbf{Reglas:} cada bien pertenece a exactamente un tipo. El ISBN no identifica un ejemplar f\'isico y no sustituye al c\'odigo de inventario.
+
+\subsection{UnidadInventario}
+Es el ejemplar u objeto f\'isico concreto que puede entregarse o habilitarse para uso en sitio.
+
+\textbf{Atributos:} identificador, bien, c\'odigo de inventario, adscripci\'on o custodia institucional, serie opcional, ubicaci\'on, condici\'on f\'isica, accesorios incluidos, estado (disponible, prestada, mantenimiento o baja), fecha de adquisici\'on opcional, fecha y motivo de baja opcionales y observaciones.
+
+\textbf{Reglas:} el c\'odigo de inventario es obligatorio y \'unico. Solo se admite una unidad bajo custodia de la Escuela y no adscrita a laboratorios, independientemente de su tipo o ubicaci\'on. Si existe serie, se registra con marca y modelo y se evita duplicar esa combinaci\'on. Una unidad no puede tener m\'as de un pr\'estamo abierto. La disponibilidad para un intervalo combina su estado f\'isico con reservas y pr\'estamos; no es un simple campo booleano. Sus accesorios se controlan como parte de la entrega de esa unidad, no como pr\'estamos independientes en esta versi\'on.
+
+\subsection{PoliticaPrestamo}
+Es una versi\'on de las reglas autorizadas por la Escuela.
+
+\textbf{Atributos:} identificador y versi\'on, rol opcional, tipo de bien opcional, inicio y fin de vigencia, responsable y fecha de aprobaci\'on, duraci\'on m\'axima y unidad de tiempo, modalidades permitidas, exigencia y tipos de garant\'ia, renovaci\'on permitida y cantidad m\'axima, tolerancia, tarifa diaria y reglas de bloqueo y liberaci\'on de garant\'ia. Las pol\'iticas generales o de rol incluyen adem\'as el l\'imite total de unidades simult\'aneas.
+
+\textbf{Alcances admitidos:} general (sin rol ni tipo), por rol (rol definido y tipo vac\'io) y por rol y tipo (ambos definidos). No se admite tipo definido sin rol. Cada versi\'on contiene las condiciones de su alcance; la selecci\'on sigue RF-010.
+
+\textbf{Reglas:} no se superponen vigencias de versiones de un mismo alcance. Las versiones utilizadas se conservan y no se reescriben. Una pol\'itica por tipo no modifica el cupo total por persona. No se asignan pol\'iticas de solicitante al rol administrador.
+
+\subsection{Reserva}
+Es una solicitud de uso anticipado de una unidad por parte de un estudiante o docente.
+
+\textbf{Atributos:} identificador, usuario solicitante, unidad, creaci\'on, inicio y fin solicitados, estado, uso previsto, administrador que decide y fecha y motivo de la decisi\'on cuando corresponda.
+
+\textbf{Reglas:} el fin es posterior al inicio. Solo una reserva confirmada bloquea el intervalo. Una reserva puede originar cero o un pr\'estamo y debe referirse al mismo usuario y unidad que este. Confirmar no garantiza la entrega si posteriormente aparecen retrasos, da\~nos, bloqueos u otras condiciones que la impidan; se revalida al entregar.
+
+\subsection{Prestamo}
+Es la operaci\'on central: asigna temporalmente la responsabilidad sobre una unidad a un solicitante.
+
+\textbf{Atributos:} identificador, usuario solicitante, administrador que autoriza, unidad, reserva de origen opcional, estado, inicio, vencimiento inicial y vigente, devoluci\'on real opcional, cierre por p\'erdida opcional, modalidad de uso, condici\'on y accesorios de entrega y devoluci\'on, administrador que recibe o cierra y observaciones.
+
+\textbf{Condiciones aplicadas:} conserva el rol de origen, las referencias a las versiones de pol\'itica usadas y una copia de los valores efectivos de plazo, cupo, garant\'ia, renovaci\'on, tolerancia, tarifa y bloqueo. Esta copia es un objeto de valor del pr\'estamo, no una pol\'itica editable. Un cambio posterior de rol o tarifa no modifica las condiciones ya acordadas.
+
+\textbf{Reglas:} tiene exactamente un solicitante, una unidad y un administrador autorizante. El vencimiento es posterior al inicio. Los estados activo y vencido mantienen la responsabilidad y ocupan cupo; devuelto y cerrado por p\'erdida son terminales. Una operaci\'on rechazada antes de la entrega no crea un pr\'estamo abierto.
+
+\subsection{Renovacion}
+Registra una ampliaci\'on autorizada del plazo de un pr\'estamo existente.
+
+\textbf{Atributos:} identificador, pr\'estamo, solicitante, administrador que autoriza, fecha de autorizaci\'on, vencimiento anterior, nuevo vencimiento y observaciones.
+
+\textbf{Reglas:} el solicitante es el titular del pr\'estamo. La autorizaci\'on ocurre antes del vencimiento anterior y el nuevo vencimiento es posterior a este. Las renovaciones forman una secuencia coherente y no superan el n\'umero ni la duraci\'on permitidos. Su registro y la actualizaci\'on del pr\'estamo son at\'omicos.
+
+\subsection{Garantia}
+Representa un bien autorizado en custodia o un compromiso firmado para respaldar el pr\'estamo.
+
+\textbf{Atributos:} identificador, pr\'estamo, tipo, naturaleza f\'isica o documental, descripci\'on o referencia, fecha y responsable de recepci\'on, estado (vigente, liberada o perdida), fecha y responsable de liberaci\'on opcionales y observaciones.
+
+\textbf{Reglas:} un pr\'estamo tiene cero o una garant\'ia y exactamente una si su pol\'itica la exige. Solo una garant\'ia f\'isica puede declararse perdida; la incidencia asociada documenta su tratamiento. Liberar un compromiso no se describe como devolver un objeto. Los datos identificativos de la persona no constituyen autom\'aticamente una garant\'ia.
+
+\subsection{Sancion}
+Representa una consecuencia de un incumplimiento asociado a un pr\'estamo.
+
+\textbf{Atributos:} identificador, pr\'estamo, usuario sancionado, tipo, motivo, fundamento de pol\'itica, monto, evidencia y fecha de pago opcionales, inicio y fin de bloqueo opcionales, suspensi\'on de bloqueo con motivo si corresponde, estado, fecha de registro, responsable (administrador o proceso autom\'atico) y datos de apelaci\'on y resoluci\'on.
+
+\textbf{Reglas:} el sancionado es el solicitante del pr\'estamo. Monto y duraciones no son negativos; si hay bloqueo, su fin es posterior al inicio. Pago y cumplimiento temporal son obligaciones distintas. Un bloqueo impide nuevas reservas, entregas y renovaciones mientras su intervalo est\'e vigente y la sanci\'on no est\'e anulada ni tenga suspensi\'on registrada. Debe haber como m\'aximo una sanci\'on autom\'atica de retraso por pr\'estamo.
+
+\subsection{Incidencia}
+Representa una anomal\'ia ocurrida durante el pr\'estamo, la devoluci\'on o la custodia de su garant\'ia.
+
+\textbf{Atributos:} identificador, pr\'estamo, garant\'ia relacionada opcional, tipo, descripci\'on, informante, administrador que registra, fecha, estado (abierta o resuelta), acci\'on correctiva y fecha y responsable de resoluci\'on opcionales.
+
+\textbf{Reglas:} resolver exige documentar la acci\'on tomada. Si refiere una garant\'ia, esta debe pertenecer al mismo pr\'estamo. Puede existir una incidencia sin sanci\'on; por ejemplo, la p\'erdida de una garant\'ia bajo custodia de la Escuela no atribuye autom\'aticamente culpa al solicitante.
+
+\subsection{EventoHistorial}
+Es el registro de auditor\'ia de una operaci\'on significativa.
+
+\textbf{Atributos:} identificador, usuario actor opcional, identificaci\'on del proceso autom\'atico si corresponde, entidad e identificador afectados, acci\'on, fecha y hora, resultado y detalle de cambios relevante para la trazabilidad.
+
+\textbf{Reglas:} todo evento identifica un actor humano o un proceso; no queda an\'onimo. Es de solo adici\'on desde la aplicaci\'on. No almacena credenciales ni sustituye a las entidades de negocio. Las correcciones se expresan mediante nuevos eventos enlazados a los anteriores.

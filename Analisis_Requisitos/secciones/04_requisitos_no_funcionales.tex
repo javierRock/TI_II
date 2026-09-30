@@ -1,0 +1,34 @@
+\chapter{Requisitos no funcionales}
+\label{cap:rnf}
+
+Estos requisitos constituyen criterios de calidad propuestos. Las metas de carga, recuperaci\'on y conservaci\'on requieren validaci\'on antes del despliegue.
+
+\section{Persistencia y portabilidad}
+\textbf{RNF-001.} Los registros deben persistir en una base de datos relacional y mantenerse tras reiniciar la aplicaci\'on. SQLite se propone para un prototipo local; no es una exigencia derivada de los apuntes. Si se necesita un despliegue compartido con mayor concurrencia, se evaluar\'a PostgreSQL antes de seleccionar la arquitectura definitiva.
+
+\section{Integridad referencial y transacciones}
+\textbf{RNF-002.} Deben definirse claves for\'aneas y transacciones para las operaciones que cambian pr\'estamo, unidad, reserva, garant\'ia e historial. En SQLite se debe activar \texttt{PRAGMA foreign\_keys = ON} en cada conexi\'on; esta instrucci\'on no corresponde a PostgreSQL. Como prueba de concurrencia, dos entregas simult\'aneas de una misma unidad deben producir exactamente un pr\'estamo confirmado. Tambi\'en se debe probar que dos operaciones simult\'aneas no excedan el cupo de una persona ni confirmen reservas incompatibles.
+
+\section{Validez de datos}
+\textbf{RNF-003.} El esquema debe usar restricciones \texttt{CHECK}, \texttt{UNIQUE} y \texttt{NOT NULL} cuando correspondan. Las reglas que dependen de varios registros, como solapamientos y cupos, deben validarse dentro de la transacci\'on mediante mecanismos apropiados al motor. Deben rechazarse c\'odigos duplicados, intervalos vac\'ios o invertidos, montos negativos y referencias inexistentes.
+
+\section{Rendimiento}
+\textbf{RNF-004.} Como meta inicial de prueba, el 95\,\% de las consultas de cat\'alogo, disponibilidad, vencimientos e historial debe responder en un m\'aximo de dos segundos, con 1000 unidades, 10\,000 pr\'estamos hist\'oricos y diez sesiones concurrentes. El entorno de ensayo debe documentarse y la meta debe revisarse con la Escuela. Se requieren \'indices en campos de b\'usqueda y relaciones frecuentes.
+
+\section{Seguridad y privacidad}
+\textbf{RNF-005.} Las contrase\~nas deben almacenarse con una funci\'on de derivaci\'on apropiada, como Argon2id o bcrypt, con sal individual y par\'ametros documentados; nunca en texto plano ni con cifrado reversible. El sistema debe limitar intentos de acceso, invalidar sesiones al cerrar sesi\'on o desactivar una cuenta y verificar autorizaci\'on sobre cada registro. Si se accede por red, debe utilizar HTTPS. Los datos personales y las garant\'ias solo deben ser visibles para el titular y el personal autorizado.
+
+\section{Auditabilidad}
+\textbf{RNF-006.} La aplicaci\'on no debe permitir editar ni eliminar eventos del historial, ni siquiera desde el rol administrador del servicio. Cada cambio de negocio confirmado y su evento deben persistir en la misma transacci\'on. Esta protecci\'on no equivale a inmutabilidad absoluta frente a quien controla el archivo o servidor de base de datos; los permisos del sistema operativo y los respaldos deben complementar el control. Las rectificaciones se registran como nuevos eventos.
+
+\section{Mantenibilidad}
+\textbf{RNF-007.} Las reglas de pr\'estamo deben separarse de la interfaz y parametrizarse sin modificar c\'odigo. El modelo l\'ogico debe mantenerse independiente del motor en lo posible, documentando las diferencias de migraci\'on de tipos, restricciones y concurrencia. Un cambio de pol\'itica debe generar una nueva versi\'on y conservar las condiciones de operaciones anteriores.
+
+\section{Usabilidad}
+\textbf{RNF-008.} La interfaz debe estar en espa\~nol, mostrar fechas, horas y estados sin ambig\"uedad y explicar por qu\'e una solicitud no puede procesarse. Si se implementa como aplicaci\'on web, las vistas principales deben ser utilizables en escritorio y m\'ovil, con navegaci\'on por teclado y etiquetas en formularios. Las acciones de baja, cierre por p\'erdida y anulaci\'on de sanci\'on requieren confirmaci\'on expl\'icita.
+
+\section{Respaldo y recuperaci\'on}
+\textbf{RNF-009.} Debe existir un procedimiento de respaldo consistente, acceso restringido y restauraci\'on comprobada. Para el prototipo se propone un respaldo diario y una prueba de restauraci\'on previa a la entrega; la Escuela debe aprobar la p\'erdida de datos y el tiempo de recuperaci\'on tolerables. Una restauraci\'on debe conservar relaciones, pr\'estamos abiertos e historial sin registros hu\'erfanos.
+
+\section{Consistencia temporal}
+\textbf{RNF-010.} El sistema debe utilizar una fuente de tiempo coherente para vencimientos, reservas y sanciones. Debe almacenar instantes de forma consistente y mostrarlos en la zona horaria de Arequipa (\texttt{America/Lima}). Los intervalos se tratar\'an como $[inicio,fin)$: un turno puede comenzar cuando termina otro, sujeto a verificaci\'on de devoluci\'on y condici\'on del bien.

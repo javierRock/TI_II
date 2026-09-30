@@ -1,0 +1,27 @@
+\documentclass[12pt,a4paper]{report}
+
+\input{config/preambulo}
+\input{config/datos}
+
+\begin{document}
+
+\hypersetup{pageanchor=false}
+\input{secciones/00_portada}
+\pagenumbering{roman}
+\hypersetup{pageanchor=true}
+\tableofcontents
+\clearpage
+\pagenumbering{arabic}
+
+\input{secciones/01_introduccion}
+\input{secciones/02_contexto}
+\input{secciones/03_requisitos_funcionales}
+\input{secciones/04_requisitos_no_funcionales}
+% \input{secciones/05_modelo_dominio}
+\input{secciones/06_conclusiones}
+
+% \appendix
+% \input{secciones/07_glosario}
+% \input{secciones/08_trazabilidad}
+
+\end{document}

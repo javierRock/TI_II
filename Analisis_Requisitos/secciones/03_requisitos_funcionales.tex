@@ -1,0 +1,120 @@
+\chapter{Requisitos funcionales}
+\label{cap:rf}
+
+Los requisitos describen comportamientos verificables. Se conservan los identificadores RF-001 a RF-026 del borrador y se a\~naden requisitos para completar autenticaci\'on, estados, renovaciones e historial personal. Las condiciones configurables requieren aprobaci\'on conforme a la secci\'on~\ref{sec:pendientes}.
+
+\section{Identidad, acceso y perfiles}
+
+\subsection{Registro de personas}
+\textbf{RF-001.} El administrador debe poder registrar personas vinculadas a la Escuela con documento de identidad \'unico, nombre completo, correo y datos de contacto. Debe poder desactivarlas sin eliminar sus operaciones hist\'oricas. Desactivar una persona desactiva tambi\'en su cuenta e invalida sus sesiones; las devoluciones y obligaciones pendientes siguen siendo gestionables por el administrador. No se admitir\'an documentos duplicados.
+
+\subsection{Cuentas de usuario}
+\textbf{RF-002.} Una persona registrada puede tener cero o una cuenta; cada cuenta pertenece a exactamente una persona. La cuenta debe contener nombre de usuario \'unico, hash de contrase\~na y estado activo o inactivo. Una cuenta activa requiere una persona activa. La desactivaci\'on impide nuevos accesos y nuevas solicitudes, pero no impide al administrador registrar devoluciones o resolver obligaciones existentes.
+
+\subsection{Asignaci\'on de roles}
+\textbf{RF-003.} Cada cuenta debe tener exactamente un rol: administrador, docente o estudiante. Solo el administrador puede asignar roles. Docentes y estudiantes no deben poder ejecutar operaciones administrativas ni acceder a registros privados de otras personas.
+
+\subsection{Perfiles por rol}
+\textbf{RF-004.} Una cuenta estudiante debe tener un perfil con c\'odigo universitario \'unico, programa y semestre v\'alido para su plan de estudios. Una cuenta docente debe tener un perfil con c\'odigo institucional \'unico, especialidad y vinculaci\'on con la Escuela. Un cambio de rol debe validar el perfil correspondiente y no alterar el historial previo.
+
+\subsection{Autenticaci\'on y cierre de sesi\'on}
+\textbf{RF-027.} El sistema debe permitir iniciar y cerrar sesi\'on. Debe rechazar credenciales inv\'alidas o cuentas inactivas y verificar los permisos en cada operaci\'on, no solo en la interfaz.
+
+\section{Cat\'alogo e inventario}
+
+\subsection{Tipos y fichas de bienes}
+\textbf{RF-005.} El cat\'alogo debe distinguir los tipos libro, mesa de ping-pong, visor 3D, parlante y carrito para rob\'otica. Cada ficha de bien contiene nombre, tipo y descripci\'on; para libros incluye t\'itulo, autor, edici\'on e ISBN cuando exista, y para dispositivos, marca y modelo cuando corresponda. No debe permitir incorporar computadoras ni recursos adscritos a laboratorios al inventario prestable.
+
+\subsection{Unidades f\'isicas}
+\textbf{RF-006.} Cada unidad debe tener un c\'odigo de inventario obligatorio y \'unico, referencia a su ficha de bien, adscripci\'on o custodia institucional, ubicaci\'on, condici\'on f\'isica, accesorios y observaciones. Solo se admite una unidad bajo custodia de la Escuela y no adscrita a laboratorios; su ubicaci\'on f\'isica no sustituye esa verificaci\'on. La serie y la fecha de adquisici\'on son opcionales si no se conocen o no aplican. La serie, cuando se registre, se controla junto con marca y modelo para evitar duplicados. Varios ejemplares de un libro pueden compartir ISBN, pero no c\'odigo de inventario.
+
+\subsection{Estados del inventario}
+\textbf{RF-007.} Cada unidad debe tener uno de estos estados: disponible, prestada, mantenimiento o baja. Solo una unidad disponible puede entregarse. Una reserva futura no cambia por s\'i sola el estado f\'isico actual, pero debe bloquear entregas incompatibles con el intervalo confirmado.
+
+\subsection{Baja y conservaci\'on del historial}
+\textbf{RF-008.} El administrador debe poder dar de baja una unidad indicando fecha y motivo, sin eliminar reservas o pr\'estamos hist\'oricos. No puede darla de baja con un pr\'estamo abierto, salvo mediante el cierre por p\'erdida previsto en RF-028. Debe cancelar las reservas futuras afectadas con registro del motivo.
+
+\subsection{Consulta de disponibilidad}
+\textbf{RF-029.} Los usuarios deben poder buscar bienes por tipo, nombre y c\'odigo, y consultar disponibilidad para un intervalo de fecha y hora. La consulta debe considerar estado f\'isico, pr\'estamos abiertos y reservas confirmadas. Los datos de otros solicitantes no deben mostrarse en la vista de disponibilidad.
+
+\section{Pol\'iticas y tiempo de pr\'estamo}
+
+\subsection{Pol\'iticas configurables}
+\textbf{RF-009.} El administrador debe poder configurar pol\'iticas aprobadas con l\'imite total de unidades simult\'aneas por rol, duraci\'on m\'axima y unidad de tiempo (horas o d\'ias), modalidades de uso, garant\'ia exigible, permiso y l\'imite de renovaciones, tolerancia de retraso y tarifa por d\'ia de retraso, que puede ser cero. El l\'imite simult\'aneo se cuenta sobre todos los pr\'estamos abiertos del solicitante, incluidos los vencidos.
+
+\subsection{Selecci\'on y vigencia de pol\'iticas}
+\textbf{RF-010.} La duraci\'on, garant\'ia, modalidad, renovaci\'on, tolerancia, tarifa y reglas de bloqueo y liberaci\'on de garant\'ia se resuelven por prioridad: pol\'itica de rol y tipo de bien, pol\'itica de rol y, en su defecto, pol\'itica general. El l\'imite total de unidades se obtiene solo de la pol\'itica de rol o general; una excepci\'on por tipo no puede aumentarlo. No puede haber dos versiones vigentes del mismo alcance al mismo tiempo. Si falta una pol\'itica aprobada aplicable, se rechaza la operaci\'on. Cada pr\'estamo conserva la versi\'on y las condiciones aplicadas, sin modificaciones retroactivas.
+
+\section{Reservas}
+
+\subsection{Solicitud anticipada}
+\textbf{RF-011.} Un estudiante o docente activo debe poder solicitar una reserva para una unidad, con inicio futuro, fin estrictamente posterior e indicaci\'on del uso previsto. Se deben validar perfil, pol\'itica y ausencia de bloqueo vigente. La solicitud queda pendiente hasta la decisi\'on del administrador.
+
+\subsection{Estados y confirmaci\'on}
+\textbf{RF-012.} La reserva debe tener estado pendiente, confirmada, rechazada, cancelada, atendida o vencida. El administrador confirma o rechaza una pendiente y registra el motivo del rechazo. El titular o el administrador puede cancelar una pendiente o confirmada antes de la entrega. Una reserva pendiente o confirmada que alcanza su fin sin entrega pasa a vencida. Solo las confirmadas bloquean intervalos; su confirmaci\'on debe impedir solapamientos para la misma unidad y evitar que se supere el l\'imite total del solicitante en cualquier instante del intervalo, considerando sus reservas confirmadas y pr\'estamos abiertos.
+
+\subsection{Conversi\'on en pr\'estamo}
+\textbf{RF-013.} Durante el intervalo confirmado, el administrador debe poder generar un \'unico pr\'estamo desde la reserva, sin volver a ingresar solicitante y unidad. Debe revalidar las condiciones de entrega de RF-015, mantener como m\'aximo el fin reservado y marcar la reserva como atendida en la misma transacci\'on. Una reserva cancelada, rechazada, vencida o atendida no puede originar otro pr\'estamo.
+
+\section{Pr\'estamos y devoluciones}
+
+\subsection{Registro de entrega}
+\textbf{RF-014.} El administrador debe registrar cada entrega, con o sin reserva previa: solicitante, administrador que autoriza, unidad, fecha y hora, vencimiento acordado, modalidad de uso, condici\'on y accesorios entregados, condiciones de pol\'itica aplicadas y reserva de origen si existe. Para el uso en sitio se registra el inicio de la responsabilidad sobre el bien, sin simular un traslado.
+
+\subsection{Validaci\'on de la entrega}
+\textbf{RF-015.} Antes de registrar el pr\'estamo, el sistema debe validar cuenta y perfil activos del solicitante, rol habilitado, ausencia de bloqueo, unidad disponible, pol\'itica aprobada, plazo, cupo total y garant\'ia requerida. Debe comprobar que el intervalo no se solape con reservas confirmadas de la unidad, salvo su propia reserva de origen, y que el solicitante conserve cupo durante todo el intervalo, considerando otras reservas confirmadas. La validaci\'on y el cambio de estado deben ser at\'omicos para impedir dobles entregas.
+
+\subsection{Duraci\'on y vencimiento}
+\textbf{RF-016.} Cada pr\'estamo debe registrar inicio y vencimiento con fecha y hora; el vencimiento debe ser estrictamente posterior al inicio y no exceder la duraci\'on permitida. El sistema debe identificar como vencido todo pr\'estamo no cerrado cuyo plazo haya expirado. La tolerancia para sanciones no modifica el vencimiento ni libera la unidad.
+
+\subsection{Devoluci\'on e inspecci\'on}
+\textbf{RF-017.} El administrador debe registrar fecha y hora real de devoluci\'on, condici\'on y accesorios recibidos. El pr\'estamo pasa a devuelto y la unidad a disponible si est\'a apta, a mantenimiento si requiere revisi\'on o a baja si se autoriza su retiro con motivo registrado. Un da\~no no puede dejar el bien disponible autom\'aticamente. Si queda fuera de servicio, se deben cancelar las reservas afectadas. Se eval\'ua el retraso y se gestiona la garant\'ia sin duplicar el cierre.
+
+\subsection{Estados del pr\'estamo y p\'erdida}
+\textbf{RF-028.} Los estados son activo, vencido, devuelto y cerrado por p\'erdida. Activo y vencido son estados abiertos y consumen cupo. Un pr\'estamo abierto puede terminar por devoluci\'on o por p\'erdida confirmada por el administrador. En este \'ultimo caso se exige una incidencia, motivo y fecha de cierre; la fecha real de devoluci\'on queda vac\'ia, la unidad pasa a baja y se cancelan sus reservas futuras. Cerrar el pr\'estamo no elimina sanciones ni garant\'ias pendientes.
+
+\subsection{Renovaci\'on}
+\textbf{RF-030.} El titular puede solicitar una renovaci\'on y el administrador autorizarla antes del vencimiento. Se deben validar cuenta, perfil, ausencia de bloqueo, condiciones de renovaci\'on conservadas en el pr\'estamo, n\'umero de renovaciones y ausencia de conflictos de unidad o cupo en el intervalo ampliado. Cada extensi\'on se mide desde el vencimiento anterior y utiliza como tope la duraci\'on m\'axima conservada de la pol\'itica del pr\'estamo. Se registran vencimiento anterior, nuevo vencimiento, solicitante, administrador y fecha; no se crea otro pr\'estamo ni se borra el plazo previo.
+
+\section{Garant\'ias}
+
+\subsection{Registro de garant\'ia}
+\textbf{RF-018.} Cuando la pol\'itica lo exija, el pr\'estamo debe contar con una garant\'ia registrada antes de completar la entrega. Se registra tipo autorizado, descripci\'on o referencia del compromiso, responsable de recepci\'on y fecha. Puede ser un bien en custodia o un compromiso firmado, si la Escuela lo autoriza. La identificaci\'on del solicitante no implica retener su DNI. Se permite como m\'aximo una garant\'ia por pr\'estamo.
+
+\subsection{Ciclo de la garant\'ia}
+\textbf{RF-019.} La garant\'ia debe tener estado vigente, liberada o perdida. Vigente significa custodia o compromiso activo; liberada registra la devoluci\'on del bien o el cierre del compromiso, con fecha y responsable. Perdida solo aplica a una garant\'ia f\'isica y exige registrar una incidencia. Las condiciones de liberaci\'on deben seguir la pol\'itica aprobada y quedar auditadas.
+
+\section{Sanciones}
+
+\subsection{Registro de incumplimientos}
+\textbf{RF-020.} El sistema debe registrar sanciones vinculadas a un pr\'estamo por retraso, da\~no, p\'erdida u otro motivo justificado. Se debe identificar al solicitante sancionado, motivo, fundamento de la pol\'itica, monto si corresponde, periodo de bloqueo si corresponde y responsable del registro. Los montos y duraciones no pueden ser negativos. Una incidencia no implica por s\'i sola una multa.
+
+\subsection{Cumplimiento y apelaci\'on}
+\textbf{RF-021.} Las sanciones deben tener estado pendiente, apelada, cumplida o anulada. El administrador registra apelaci\'on, resoluci\'on y evidencia de cumplimiento. El pago, si corresponde, se registra como un dato separado y no extingue por s\'i solo un bloqueo temporal. Solo se marca cumplida cuando se satisfacen todas las obligaciones; la anulaci\'on exige motivo. Una apelaci\'on no suspende autom\'aticamente el bloqueo, salvo decisi\'on registrada conforme a la pol\'itica. No se procesan pagos en l\'inea.
+
+\subsection{C\'alculo de retraso}
+\textbf{RF-022.} Al devolver un bien o cerrar un pr\'estamo por p\'erdida, el sistema debe evaluar el retraso utilizando las condiciones conservadas del pr\'estamo. Como regla de c\'alculo propuesta, sujeta a aprobaci\'on, se toma el exceso sobre el vencimiento descontando la tolerancia y se redondea hacia arriba a d\'ias de 24 horas. Si $\Delta$ es ese exceso en horas y $m$ es la tarifa aprobada por d\'ia, entonces:
+\[
+    d = \left\lceil \frac{\max(0,\Delta)}{24} \right\rceil,
+    \qquad \text{monto por retraso} = m \cdot d.
+\]
+Debe existir como m\'aximo una sanci\'on autom\'atica de retraso por pr\'estamo. Si no existe una multa aprobada, no se genera cobro; se registra el retraso y solo se aplican las restricciones autorizadas. El c\'alculo debe usar el vencimiento vigente despu\'es de renovaciones.
+
+\section{Incidencias}
+
+\subsection{Registro de anomal\'ias}
+\textbf{RF-023.} El administrador debe poder registrar incidencias asociadas a un pr\'estamo: da\~no, p\'erdida del bien, falta de accesorios, retraso prolongado o p\'erdida de garant\'ia. Se registra descripci\'on, fecha, informante y responsable del registro. Tambi\'en pueden registrarse durante la inspecci\'on de devoluci\'on.
+
+\subsection{Resoluci\'on}
+\textbf{RF-024.} Una incidencia debe tener estado abierta o resuelta. Para resolverla, el administrador debe registrar acci\'on correctiva, fecha y responsable. Resolver una incidencia no elimina su historial ni marca autom\'aticamente una sanci\'on como cumplida.
+
+\section{Historial y reportes}
+
+\subsection{Trazabilidad de operaciones}
+\textbf{RF-025.} El sistema debe registrar altas, cambios de perfil o pol\'itica, cambios de estado, reservas, entregas, renovaciones, devoluciones, garant\'ias y sanciones. Cada evento contiene actor (usuario o proceso autom\'atico), acci\'on, entidad y registro afectados, fecha y hora, resultado y detalle suficiente para reconstruir la operaci\'on. No se deben registrar contrase\~nas ni secretos de sesi\'on.
+
+\subsection{Consulta administrativa}
+\textbf{RF-026.} El administrador debe poder consultar historial y reportes de inventario, pr\'estamos activos o vencidos, reservas pr\'oximas y sanciones pendientes. Debe poder filtrar por usuario, bien, periodo y acci\'on, sin modificar los eventos consultados.
+
+\subsection{Historial personal}
+\textbf{RF-031.} El estudiante o docente debe poder consultar exclusivamente sus reservas, pr\'estamos, vencimientos, renovaciones, garant\'ias y sanciones, incluyendo su estado actual. Los datos deben coincidir con los registros operativos y actualizarse tras cada operaci\'on confirmada.

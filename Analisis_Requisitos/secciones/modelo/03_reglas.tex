@@ -1,0 +1,68 @@
+\section{Ciclos de vida}
+\label{sec:estados}
+
+\subsection{Reserva}
+\begin{itemize}
+    \item Pendiente: solicitud registrada sin bloqueo de disponibilidad.
+    \item Confirmada: solicitud aprobada; el intervalo queda comprometido para la unidad y el solicitante.
+    \item Rechazada: solicitud pendiente denegada con motivo.
+    \item Cancelada: solicitud pendiente o confirmada retirada antes de la entrega.
+    \item Atendida: reserva confirmada convertida en su \'unico pr\'estamo.
+    \item Vencida: reserva pendiente o confirmada cuyo intervalo termin\'o sin entrega.
+\end{itemize}
+
+Las transiciones permitidas son pendiente a confirmada, rechazada, cancelada o vencida, y confirmada a atendida, cancelada o vencida. Los estados terminales no se reabren; una nueva solicitud genera otra reserva. El paso a vencida debe efectuarse antes de evaluar operaciones que dependan de su vigencia, aunque no exista un proceso peri\'odico en ejecuci\'on.
+
+\subsection{Pr\'estamo}
+\begin{itemize}
+    \item Activo: entrega registrada, sin devoluci\'on ni cierre y con plazo a\'un no superado.
+    \item Vencido: sigue abierto y la fecha y hora actuales superan el vencimiento vigente.
+    \item Devuelto: se registr\'o la recepci\'on e inspecci\'on del bien.
+    \item Cerrado por p\'erdida: el administrador document\'o la imposibilidad de devoluci\'on y dio de baja la unidad.
+\end{itemize}
+
+Las transiciones son activo a vencido, devuelto o cerrado por p\'erdida, y vencido a devuelto o cerrado por p\'erdida. Una renovaci\'on v\'alida mantiene el estado activo y cambia el vencimiento; no permite reactivar un pr\'estamo ya vencido. El estado vencido debe derivarse del reloj y del cierre, o actualizarse de forma consistente antes de cada consulta u operaci\'on. No puede depender de una tarea manual.
+
+\subsection{Unidad y obligaciones asociadas}
+La entrega cambia la unidad de disponible a prestada en la misma transacci\'on que crea el pr\'estamo. Mientras este est\'a activo o vencido, la unidad permanece prestada. La devoluci\'on la lleva a disponible, mantenimiento o baja seg\'un la inspecci\'on; el cierre por p\'erdida la lleva a baja. Una unidad en mantenimiento puede volver a disponible tras verificaci\'on administrativa. Una baja es terminal dentro de esta versi\'on.
+
+Cerrar el pr\'estamo no equivale a liberar toda obligaci\'on: las garant\'ias, incidencias y sanciones conservan sus propios estados hasta su resoluci\'on. Se permite registrar esa resoluci\'on aunque la cuenta del titular est\'e inactiva.
+
+\section{Reglas de integridad}
+\label{sec:integridad}
+
+\subsection{Identidad y referencias}
+\begin{itemize}
+    \item Son \'unicos el documento de persona, nombre de usuario, referencia de persona en la cuenta, c\'odigos de perfiles, nombre de tipo de bien y c\'odigo de inventario.
+    \item La referencia a reserva en un pr\'estamo es opcional y \'unica cuando existe; la referencia a pr\'estamo en una garant\'ia es obligatoria y \'unica.
+    \item La serie no es obligatoria para todos los bienes. Se controla la combinaci\'on marca, modelo y serie cuando se registra; el ISBN puede compartirse entre ejemplares.
+    \item Solicitante, unidad, autorizante, inicio, vencimiento y condiciones aplicadas son obligatorios en todo pr\'estamo.
+    \item Las referencias hist\'oricas se conservan mediante desactivaci\'on o baja l\'ogica; no se eliminan en cascada pr\'estamos, garant\'ias, sanciones o eventos.
+\end{itemize}
+
+\subsection{Tiempo, disponibilidad y cupo}
+Dos intervalos $[i_1,f_1)$ y $[i_2,f_2)$ se solapan si y solo si:
+\[
+    i_1 < f_2 \quad \land \quad i_2 < f_1.
+\]
+
+\begin{itemize}
+    \item Toda reserva tiene fin posterior a inicio. Todo pr\'estamo tiene vencimiento posterior a entrega. Devoluci\'on y cierre por p\'erdida, cuando existan, no pueden ser anteriores a la entrega y son mutuamente excluyentes.
+    \item Un pr\'estamo devuelto exige fecha de devoluci\'on; uno cerrado por p\'erdida exige fecha de cierre e incidencia. Los abiertos no tienen ninguna de esas fechas.
+    \item No se permiten reservas confirmadas solapadas para una unidad. Un pr\'estamo o renovaci\'on no puede invadir otra reserva confirmada; la reserva de origen se excluye al convertirla, para no contar dos veces la misma asignaci\'on.
+    \item Un pr\'estamo abierto ocupa su intervalo hasta el vencimiento previsto para la planificaci\'on. Si ya est\'a vencido, la disponibilidad futura se considera bloqueada hasta la devoluci\'on o cierre efectivo. Nunca se entrega otra vez una unidad todav\'ia prestada.
+    \item El cupo simult\'aneo se valida sobre todas las unidades del solicitante, no por cada tipo de manera independiente. Para intervalos futuros se suman las reservas confirmadas y los pr\'estamos abiertos que los intersectan; los vencidos se consideran abiertos sin fin conocido.
+    \item La confirmaci\'on de reservas, las entregas y las renovaciones verifican tanto conflictos de unidad como de cupo dentro de la misma transacci\'on. Una consulta previa de disponibilidad no reemplaza esta verificaci\'on.
+    \item Duraciones y cupos son positivos; tolerancia, tarifa, monto y n\'umero de renovaciones son no negativos. Si no se permiten renovaciones, su m\'aximo es cero.
+\end{itemize}
+
+\subsection{Garant\'ias, sanciones y auditor\'ia}
+\begin{itemize}
+    \item Una entrega que exige garant\'ia no puede confirmarse sin registrarla como vigente. La liberaci\'on exige fecha y responsable; una p\'erdida exige una incidencia vinculada.
+    \item El usuario sancionado debe coincidir con el solicitante del pr\'estamo, nunca con el administrador que lo autoriz\'o por el solo hecho de autorizarlo.
+    \item El c\'alculo autom\'atico de retraso es idempotente: repetir el procesamiento no duplica sanciones. Emplea la tarifa y tolerancia conservadas, y el vencimiento vigente.
+    \item Una sanci\'on no se marca cumplida mientras quede una obligaci\'on econ\'omica o temporal pendiente. Una apelaci\'on y su resoluci\'on no borran el registro original.
+    \item Los cambios de estado y sus eventos se confirman juntos. Un fallo no puede dejar un pr\'estamo creado sin ocupar la unidad, una reserva atendida sin pr\'estamo o una garant\'ia sin asociaci\'on.
+\end{itemize}
+
+La implementaci\'on deber\'a combinar restricciones declarativas, \'indices y validaciones transaccionales. Una restricci\'on sobre una sola fila no basta para impedir todos los solapamientos ni excesos de cupo.

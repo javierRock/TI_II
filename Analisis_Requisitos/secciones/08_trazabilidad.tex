@@ -1,0 +1,54 @@
+\chapter{Trazabilidad y criterios de validaci\'on}
+\label{ap:trazabilidad}
+
+\section{Cobertura de los apuntes de clase}
+
+La tabla relaciona los temas identificados en la imagen con requisitos y conceptos del informe. Las abreviaturas de los apuntes se desarrollan como tiempo de pr\'estamo y reservas; no se deducen de ellas valores de duraci\'on o multas.
+
+\begingroup
+\small
+\begin{longtable}{@{}>{\raggedright\arraybackslash}p{3.3cm}>{\raggedright\arraybackslash}p{4.4cm}>{\raggedright\arraybackslash}p{6.6cm}@{}}
+\caption{Trazabilidad de los puntos solicitados}\\
+\toprule
+\textbf{Punto de los apuntes} & \textbf{Requisitos relacionados} & \textbf{Modelo o secci\'on} \\
+\midrule
+\endfirsthead
+\toprule
+\textbf{Punto de los apuntes} & \textbf{Requisitos relacionados} & \textbf{Modelo o secci\'on} \\
+\midrule
+\endhead
+\bottomrule
+\endfoot
+Equipos, libros y objetos & RF-005 a RF-008; RF-029 & Alcance de cinco tipos; TipoBien, Bien y UnidadInventario. \\
+Usuarios: estudiante, docente, administrador & RF-001 a RF-003; RF-027 & Actores, Persona, Usuario y Rol. \\
+Perfil & RF-004 & PerfilEstudiante y PerfilDocente. \\
+Tiempo de pr\'estamo & RF-009, RF-010, RF-016, RF-030; RNF-010 & PoliticaPrestamo, Prestamo y Renovacion. \\
+Reservas & RF-011 a RF-013; RF-015 & Reserva, estados y reglas de no solapamiento. \\
+Registros & RF-001, RF-006, RF-014, RF-017, RF-025 & Registro de personas, unidades, entregas, devoluciones y eventos. \\
+Inventario & RF-005 a RF-008; RF-029 & TipoBien, Bien, UnidadInventario y disponibilidad. \\
+Estado de pr\'estamo & RF-016, RF-017, RF-028 & Activo, vencido, devuelto y cerrado por p\'erdida. \\
+Historial & RF-025, RF-026, RF-031; RNF-006 & EventoHistorial, reportes e historial personal. \\
+Garant\'ia & RF-018, RF-019 & Garantia y su relaci\'on opcional con Prestamo. \\
+Sanci\'on & RF-020 a RF-022 & Sancion, bloqueo, cumplimiento y apelaci\'on. \\
+Pol\'iticas de pr\'estamo & RF-009, RF-010 & PoliticaPrestamo y condiciones conservadas. \\
+An\'alisis de requisitos & Cap\'itulos~\ref{cap:contexto}, \ref{cap:rf} y~\ref{cap:rnf} & Contexto, requisitos funcionales y no funcionales. \\
+Modelo de dominio & Cap\'itulo~\ref{cap:modelo} & Entidades, diagrama, cardinalidades y reglas. \\
+\end{longtable}
+\endgroup
+
+\section{Escenarios de aceptaci\'on propuestos}
+
+Los siguientes escenarios orientan las pruebas de una futura implementaci\'on; no son resultados de pruebas ejecutadas sobre un sistema ya desarrollado.
+
+\begin{enumerate}
+    \item \textbf{Alcance e identificaci\'on (RF-005, RF-006).} Registrar dos ejemplares del mismo libro con igual ISBN y distintos c\'odigos debe ser v\'alido. Repetir un c\'odigo, registrar una computadora o incorporar un carrito adscrito a un laboratorio debe rechazarse.
+    \item \textbf{Roles y privacidad (RF-003, RF-027, RF-031).} Un estudiante puede consultar su historial, pero no registrar una entrega ni acceder al detalle privado de otro solicitante, incluso si intenta invocar la operaci\'on directamente.
+    \item \textbf{Reserva por turnos (RF-011, RF-012; RNF-010).} Con una pol\'itica de prueba aprobada que habilite turnos, una reserva confirmada de mesa de 10:00 a 11:00 impide otra de 10:30 a 11:30 para la misma unidad. Una de 11:00 a 12:00 puede confirmarse si cumple las dem\'as condiciones.
+    \item \textbf{Entrega concurrente (RF-015; RNF-002).} Dos administradores que intenten prestar el mismo visor al mismo tiempo deben obtener una sola entrega confirmada, un solo pr\'estamo abierto y un historial consistente.
+    \item \textbf{Cupo total (RF-009, RF-015).} Con un cupo de prueba de una unidad, un estudiante con un parlante prestado no puede recibir un libro adicional, aunque sean tipos distintos. Tampoco puede confirmar reservas simult\'aneas que excedan ese cupo.
+    \item \textbf{Reserva atendida una sola vez (RF-013).} Al convertir una reserva se conserva su solicitante y unidad, queda atendida y no puede generar un segundo pr\'estamo. Si falla la entrega, no debe quedar atendida sin pr\'estamo.
+    \item \textbf{Devoluci\'on con da\~no (RF-017, RF-023).} Un carrito devuelto con un componente da\~nado se registra como devuelto, genera una incidencia y pasa a mantenimiento, no a disponible. Se cancelan sus reservas afectadas.
+    \item \textbf{Vencimiento, renovaci\'on y p\'erdida (RF-016, RF-028, RF-030).} Un pr\'estamo vencido sigue ocupando cupo y no puede renovarse. Una p\'erdida confirmada lo cierra sin inventar fecha de devoluci\'on, da de baja la unidad y conserva las obligaciones pendientes.
+    \item \textbf{Garant\'ia y sanci\'on (RF-018 a RF-022).} Una pol\'itica que exige garant\'ia impide una entrega sin ella. Repetir el c\'alculo de retraso no duplica la sanci\'on; una tarifa no aprobada no produce un cobro. Pagar una multa no termina antes de tiempo un bloqueo independiente.
+    \item \textbf{Cambios de pol\'itica e historial (RF-010, RF-025; RNF-006).} Cambiar una tarifa no modifica las condiciones de pr\'estamos previos. El administrador puede consultar y rectificar mediante nuevos eventos, pero no editar ni borrar eventos existentes.
+\end{enumerate}
