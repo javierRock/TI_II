@@ -14,8 +14,6 @@ skinparam InterfaceBorderColor #8A5A00
 skinparam PackageBorderColor #444444
 skinparam nodesep 20
 skinparam ranksep 45
-' Opcional (mejora la legibilidad, pero es más lento al renderizar):
-' skinparam linetype ortho
 
 ' ================= 1. PRESENTACIÓN (adaptadores primarios) =================
 package "1 · PRESENTACIÓN  «driving adapters»" as L1 #E8F4F8 {
@@ -87,8 +85,8 @@ package "3 · DOMINIO  (núcleo, sin dependencias salientes)" as L3 #FFF4E8 {
 
   package "Eventos de dominio" as L3E #FFFEF9 {
     component "ReservaSolicitada · ReservaExpirada" as EvReserva
-    component "PrestamoEntregado · PrestamoDevuelto" as EvPrestamo
-    component "IncidenciaRegistrada · UnidadDadaDeBaja" as EvIncidencia
+    component "PrestamoEntregado · PrestamoDevuelto" as EvIncidencia
+    component "IncidenciaRegistrada · UnidadDadaDeBaja" as EvPrestamo
     component "SancionRegistrada · BloqueoFinalizado" as EvSancion
   }
 
