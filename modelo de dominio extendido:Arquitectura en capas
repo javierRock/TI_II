@@ -1,280 +1,270 @@
-@startuml arquitectura-en-capas
-skinparam backgroundColor white
-title "Arquitectura en Capas\nSistema de Gestion de Prestamos de Bienes - EPCC UNSA"
+@startuml arquitectura-en-capas-epcc
+title Arquitectura en Capas (Hexagonal / DDD)\nSistema de Gestión de Préstamos de Bienes — EPCC UNSA
 
+' ============================ ESTILO ============================
+skinparam backgroundColor white
 skinparam shadowing false
 skinparam packageStyle rectangle
-skinparam classAttributeIconSize 0
+skinparam defaultFontName Arial
+skinparam defaultFontSize 11
 skinparam ArrowColor #555555
-skinparam ClassBorderColor #444444
+skinparam ArrowFontSize 10
+skinparam ComponentBorderColor #444444
+skinparam InterfaceBorderColor #8A5A00
 skinparam PackageBorderColor #444444
-skinparam DefaultFontName Arial
-skinparam PackageFontName Arial
-skinparam nodesep 25
-skinparam ranksep 40
+skinparam nodesep 20
+skinparam ranksep 45
+' Opcional (mejora la legibilidad, pero es más lento al renderizar):
+' skinparam linetype ortho
 
-' =========================================================
-' CAPA DE PRESENTACION (UI / API)
-' =========================================================
-package "CAPA DE PRESENTACION" #E8F4F8 {
-  component "API REST\nControladores" as APIControllers
-  component "DTOs de Entrada\n(Request)" as DTORequest
-  component "DTOs de Salida\n(Response)" as DTOResponse
-  component "Mappers" as APIMappers
-  
-  APIControllers ..> DTORequest
-  APIControllers ..> DTOResponse
-  APIControllers ..> APIMappers
+' ================= 1. PRESENTACIÓN (adaptadores primarios) =================
+package "1 · PRESENTACIÓN  «driving adapters»" as L1 #E8F4F8 {
+  component "ReservaController\nPOST   /api/v1/reservas\nDELETE /api/v1/reservas/{id}" as CtrlReserva
+  component "PrestamoController\nPOST /api/v1/prestamos/{id}/entrega\nPOST /api/v1/prestamos/{id}/devolucion" as CtrlPrestamo
+  component "CatalogoController\nGET /api/v1/unidades?tipo=&estado=" as CtrlCatalogo
+  component "SancionController\nGET /api/v1/personas/{cui}/bloqueos" as CtrlSancion
+  component "WebMapper\nRequestDTO -> Command | Query -> ResponseDTO" as WebMapper
+  component "Transversal Web\nJwtSecurityFilter · @Valid (Bean Validation)\nGlobalExceptionHandler (RFC 7807)" as WebCross
+
+  CtrlReserva   ..> WebMapper
+  CtrlPrestamo  ..> WebMapper
+  CtrlCatalogo  ..> WebMapper
+  CtrlSancion   ..> WebMapper
 }
 
-
-' =========================================================
-' CAPA DE APLICACION (Application)
-' =========================================================
-package "CAPA DE APLICACION" #F0F8E8 {
-  component "Casos de Uso\n(Application Services)" as AppServices
-  component "Query Handlers\n(Consultas)" as QueryHandlers
-  component "Command Handlers\n(Comandos)" as CommandHandlers
-  component "Event Subscribers\n(Suscriptores)" as EventSubscribers
-  component "Event Publisher" as EventPublisher
-  component "Facade/Orquestadores" as Facade
-  
-  AppServices *-- QueryHandlers
-  AppServices *-- CommandHandlers
-  AppServices *-- EventSubscribers
-  CommandHandlers ..> EventPublisher
-  Facade ..> AppServices
+' ======================== 2. APLICACIÓN ========================
+package "2 · APLICACIÓN  (orquesta, no decide reglas)" as L2 #F0F8E8 {
+  package "Comandos (escritura)" as L2C #F7FCEF {
+    component "SolicitarReserva" as UcReserva
+    component "ConfirmarEntrega" as UcEntrega
+    component "RegistrarDevolucion" as UcDevolucion
+    component "RegistrarIncidencia" as UcIncidencia
+    component "LevantarBloqueo" as UcBloqueo
+  }
+  package "Consultas (lectura, read-model)" as L2Q #F7FCEF {
+    component "ConsultarDisponibilidad" as QDisp
+    component "ListarPrestamosVigentes" as QVigentes
+    component "HistorialDePersona" as QHistorial
+  }
+  package "Reacción a eventos de dominio" as L2E #F7FCEF {
+    component "AlDevolverConRetraso\n=> genera Sanción" as SubRetraso
+    component "AlRegistrarSancion\n=> notifica al usuario" as SubSancion
+    component "AlExpirarReserva\n=> libera UnidadFisica" as SubExpira
+  }
+  component "TransactionBoundary\n@Transactional + UnitOfWork\n(1 caso de uso = 1 transacción)" as AppTx
 }
 
+' ========================= 3. DOMINIO =========================
+package "3 · DOMINIO  (núcleo, sin dependencias salientes)" as L3 #FFF4E8 {
 
-' =========================================================
-' CAPA DE DOMINIO (Domain)
-' =========================================================
-package "CAPA DE DOMINIO" #FFF4E8 {
-  package "Agregados" #FFFAED {
-    component "Persona" as AggPersona
-    component "RecordAcademico" as AggAcademico
-    component "TipoBien / FichaBien" as AggCatalogo
-    component "UnidadFisica" as AggInventario
-    component "PoliticaPrestamo" as AggPolitica
-    component "Reserva" as AggReserva
-    component "Prestamo" as AggPrestamo
+  package "Agregados (raíz + invariantes)" as L3A #FFFAED {
+    component "Persona\n(CUI, rol base)" as AggPersona
+    component "RecordAcademico\n(matrícula vigente)" as AggAcademico
+    component "TipoBien / FichaBien\n(catálogo)" as AggCatalogo
+    component "UnidadFisica\n(estado: DISPONIBLE/PRESTADA/BAJA)" as AggUnidad
+    component "PoliticaPrestamo\n(cupo, plazo, garantía)" as AggPolitica
+    component "Reserva\n(vigencia, expiración)" as AggReserva
+    component "Prestamo\n(entrega, devolución)" as AggPrestamo
     component "Garantia" as AggGarantia
-    component "Incidencia" as AggIncidencia
-    component "Sancion" as AggSancion
+    component "Incidencia\n(daño / pérdida)" as AggIncidencia
+    component "Sancion\n(bloqueo temporal)" as AggSancion
   }
-  
-  package "Servicios de Dominio" #FFF8F0 {
-    component "VerificadorMatricula" as DomVerificadorMat
-    component "PoliticaDeRoles" as DomPoliticaRoles
-    component "ResolutorPolitica" as DomResolutorPol
-    component "GestorDisponibilidad" as DomGestorDisp
-    component "VerificadorCupo" as DomVerificadorCupo
-    component "VerificadorBloqueo" as DomVerificadorBloqueo
-    component "ValidadorEntrega" as DomValidadorEnt
-    component "CalculadorRetraso" as DomCalculadorRet
-    component "GeneradorSanciones" as DomGeneradorSanc
-  }
-  
-  package "Objetos de Valor" #FFFCF9 {
-    component "CUI, Dinero" as VOIdentificadores
-    component "IntervaloTiempo, Rol" as VOTiempos
-    component "DocumentoIdentidad, Correo" as VOContacto
-    component "CodigoInventario, Ubicacion" as VOInventario
-    component "IntervaloPrestamo, ActaEntrega" as VOPrestamo
-    component "PeriodoBloqueo, ReferenciaPolitica" as VOSancion
-  }
-  
-  package "Puertos (Interfaces)" #FFF6E8 {
-    interface "PersonaRepository" as PortPersonaRepo
-    interface "RecordAcademicoRepository" as PortAcadRepo
-    interface "PoliticaRepository" as PortPoliticaRepo
-    interface "PrestamoRepository" as PortPrestamoRepo
-    interface "ReservaRepository" as PortReservaRepo
-    interface "GarantiaRepository" as PortGarantiaRepo
-    interface "IncidenciaRepository" as PortIncidenciaRepo
-    interface "SancionRepository" as PortSancionRepo
-    interface "TipoBienRepository" as PortTipoBienRepo
-    interface "FichaBienRepository" as PortFichaBienRepo
-    interface "UnitOfWork" as PortUnitOfWork
-  }
-  
-  package "Eventos de Dominio" #FFFEF9 {
-    component "PersonaRegistrada\nRolBaseAsignado" as EvIdentidad
-    component "ReservaSolicitada\nPrestamoRegistrado" as EvPrestamo
-    component "SancionRegistrada\nBloqueoIniciado" as EvSancion
-    component "IncidenciaRegistrada\nUnidadDadaDeBaja" as EvIncidencia
-  }
-  
-  AggPersona ..> PortPersonaRepo
-  AggAcademico ..> PortAcadRepo
-  AggPolitica ..> PortPoliticaRepo
-  AggPrestamo ..> PortPrestamoRepo
-  AggReserva ..> PortReservaRepo
-  AggGarantia ..> PortGarantiaRepo
-  AggIncidencia ..> PortIncidenciaRepo
-  AggSancion ..> PortSancionRepo
-  AggCatalogo ..> PortTipoBienRepo
-  AggInventario ..> PortFichaBienRepo
-}
 
+  package "Servicios de dominio (reglas entre agregados)" as L3S #FFF8F0 {
+    component "ResolutorDePolitica\n(rol + tipoBien -> PoliticaPrestamo)" as SrvPolitica
+    component "GestorDeDisponibilidad\n(evita doble asignación)" as SrvDisponibilidad
+    component "VerificadorDeElegibilidad\n(matrícula + cupo + bloqueo)" as SrvElegibilidad
+    component "CalculadorDeRetraso\n(días hábiles · calendario EPCC)" as SrvRetraso
+    component "GeneradorDeSanciones\n(retraso/incidencia -> PeriodoBloqueo)" as SrvSanciones
+  }
 
-' =========================================================
-' CAPA DE INFRAESTRUCTURA (Infrastructure)
-' =========================================================
-package "CAPA DE INFRAESTRUCTURA" #E8F0F8 {
-  package "Adaptadores de Persistencia" #F4F8FC {
-    component "PersonaJpaRepository\n(Spring Data)" as ImplPersonaJpa
-    component "PrestamoJpaRepository\n(Spring Data)" as ImplPrestamoJpa
-    component "ReservaJpaRepository\n(Spring Data)" as ImplReservaJpa
-    component "SancionJpaRepository\n(Spring Data)" as ImplSancionJpa
-    component "Mappers Entity-Dominio" as EntityMappers
-    
-    ImplPersonaJpa ..> PortPersonaRepo
-    ImplPrestamoJpa ..> PortPrestamoRepo
-    ImplReservaJpa ..> PortReservaRepo
-    ImplSancionJpa ..> PortSancionRepo
+  package "Objetos de valor (inmutables, autovalidados)" as L3V #FFFCF9 {
+    component "CUI · DocumentoIdentidad · Correo" as VoIdentidad
+    component "CodigoInventario · Ubicacion" as VoInventario
+    component "IntervaloPrestamo · ActaEntrega" as VoPrestamo
+    component "PeriodoBloqueo · ReferenciaPolitica · Dinero" as VoSancion
   }
-  
-  package "Adaptadores Externos" #F4F8FC {
-    component "Sistema Academico\n(API REST)" as ExtAcademico
-    component "Autenticacion\n(LDAP/OAuth2)" as ExtAuth
-    component "Notificaciones\n(Email/SMS)" as ExtNotificaciones
-    component "Almacenamiento de Archivos\n(S3/Local)" as ExtAlmacenamiento
+
+  package "Eventos de dominio" as L3E #FFFEF9 {
+    component "ReservaSolicitada · ReservaExpirada" as EvReserva
+    component "PrestamoEntregado · PrestamoDevuelto" as EvPrestamo
+    component "IncidenciaRegistrada · UnidadDadaDeBaja" as EvIncidencia
+    component "SancionRegistrada · BloqueoFinalizado" as EvSancion
   }
-  
-  package "Implementacion de Eventos" #F4F8FC {
-    component "Event Store JPA" as EventStorageJpa
-    component "Message Broker\n(RabbitMQ/Kafka)" as MessageBroker
-    component "Event Publisher\nImplementacion" as EventPubImpl
-    
-    EventPubImpl ..> MessageBroker
-    EventPubImpl ..> EventStorageJpa
+
+  package "Puertos de salida · Repositorios" as L3PR #FFF6E8 {
+    interface "PersonaRepository" as PortPersona
+    interface "UnidadFisicaRepository" as PortUnidad
+    interface "PoliticaRepository" as PortPolitica
+    interface "ReservaRepository" as PortReserva
+    interface "PrestamoRepository" as PortPrestamo
+    interface "SancionRepository" as PortSancion
+    interface "UnitOfWork" as PortUow
   }
-  
-  package "Configuracion y Utilidades" #F4F8FC {
-    component "Spring Configuration" as SpringConfig
-    component "Database Transactions\n(JPA/Hibernate)" as DBTransactions
-    component "Logging\n(SLF4J/Logback)" as Logging
-    component "Caching\n(Redis)" as Caching
+
+  package "Puertos de salida · Gateways" as L3PG #FFF6E8 {
+    interface "SistemaAcademicoPort\nconsultarMatricula(CUI)" as PortAcademico
+    interface "NotificadorPort\nnotificar(Persona, Mensaje)" as PortNotificador
+    interface "RepositorioDocumentosPort\nguardarActa(PDF)" as PortDocs
+    interface "EventPublisherPort\npublicar(EventoDominio)" as PortEventos
+    interface "RelojPort\nahora()" as PortReloj
   }
 }
 
-
-' =========================================================
-' BASE DE DATOS
-' =========================================================
-package "ALMACENAMIENTO PERSISTENTE" #F8F8F8 {
-  database "PostgreSQL\nBD Prestamos" as DB
-  database "Event Store\n(Tabla eventos)" as EventDB
-  storage "File Storage\nDocumentos PDF/Imágenes" as FileStorage
+' ===================== 4. INFRAESTRUCTURA =====================
+package "4 · INFRAESTRUCTURA  «driven adapters»" as L4 #E8F0F8 {
+  package "Persistencia (JPA / Hibernate)" as L4P #F4F8FC {
+    component "PersonaJpaAdapter" as ImplPersona
+    component "UnidadFisicaJpaAdapter" as ImplUnidad
+    component "ReservaJpaAdapter" as ImplReserva
+    component "PrestamoJpaAdapter" as ImplPrestamo
+    component "SancionJpaAdapter" as ImplSancion
+    component "PoliticaJpaAdapter\n(+ caché Redis)" as ImplPolitica
+    component "JpaUnitOfWork" as ImplUow
+    component "EntityMapper\nEntidad JPA <-> Agregado" as ImplMapper
+  }
+  package "Integraciones externas" as L4E #F4F8FC {
+    component "SistemaAcademicoRestAdapter\n(WebClient + Resilience4j)" as AdpAcademico
+    component "EmailSmtpAdapter / SmsAdapter" as AdpNotif
+    component "S3StorageAdapter (MinIO)" as AdpDocs
+    component "KeycloakOAuth2 / LDAP UNSA" as AdpAuth
+  }
+  package "Mensajería y eventos" as L4M #F4F8FC {
+    component "OutboxEventPublisher\n(patrón Transactional Outbox)" as ImplPublisher
+    component "RabbitMQ Broker" as Broker
+  }
+  package "Configuración y observabilidad" as L4C #F4F8FC {
+    component "SpringBootConfiguration\n(wiring de puertos)" as Cfg
+    component "Flyway (migraciones)" as Flyway
+    component "SLF4J/Logback + Micrometer" as Obs
+    component "SystemClockAdapter" as AdpReloj
+  }
 }
 
+' ===================== 5. PERSISTENCIA =====================
+package "5 · ALMACENAMIENTO" as L5 #F8F8F8 {
+  database "PostgreSQL · prestamos_epcc\npersona · unidad_fisica · reserva\nprestamo · sancion · politica" as DB
+  database "Tabla outbox_evento\n(event store)" as EventDB
+  storage "Object Storage\nactas PDF · fotos de incidencia" as Files
+}
 
-' =========================================================
-' DEPENDENCIAS ENTRE CAPAS
-' =========================================================
+' ================= FLUJO 1 -> 2 =================
+WebMapper --> UcReserva
+WebMapper --> UcEntrega
+WebMapper --> UcDevolucion
+WebMapper --> UcIncidencia
+WebMapper --> UcBloqueo
+WebMapper --> QDisp
+WebMapper --> QVigentes
+WebMapper --> QHistorial
+AdpAuth ..> WebCross : valida token
 
-APIControllers --> APIMappers
-APIMappers --> Facade
-Facade --> AppServices
+' ================= FLUJO 2 -> 3 =================
+UcReserva    --> SrvElegibilidad
+UcReserva    --> SrvPolitica
+UcReserva    --> SrvDisponibilidad
+UcEntrega    --> AggPrestamo
+UcDevolucion --> SrvRetraso
+UcIncidencia --> AggIncidencia
+SubRetraso   --> SrvSanciones
+SubExpira    --> AggUnidad
 
-AppServices --> CommandHandlers
-AppServices --> QueryHandlers
-AppServices --> EventSubscribers
+UcReserva  ..> PortReserva
+UcEntrega  ..> PortPrestamo
+UcEntrega  ..> PortUnidad
+UcBloqueo  ..> PortSancion
+QDisp      ..> PortUnidad
+QHistorial ..> PortPersona
+AppTx      ..> PortUow
+SubSancion ..> PortNotificador
+UcEntrega  ..> PortDocs
+UcDevolucion ..> PortEventos
 
-CommandHandlers --> DomVerificadorMat
-CommandHandlers --> DomPoliticaRoles
-CommandHandlers --> DomResolutorPol
-CommandHandlers --> DomGestorDisp
-CommandHandlers --> DomVerificadorCupo
-CommandHandlers --> DomValidadorEnt
-CommandHandlers --> DomCalculadorRet
+SrvElegibilidad ..> PortAcademico
+SrvElegibilidad --> AggPersona
+SrvElegibilidad --> AggSancion
+SrvPolitica     --> AggPolitica
+SrvDisponibilidad --> AggUnidad
+SrvRetraso      ..> PortReloj
+SrvSanciones    --> AggSancion
 
-DomVerificadorMat --> AggAcademico
-DomResolutorPol --> AggPolitica
-DomGestorDisp --> AggReserva
-
-AggPersona --> VOIdentificadores
-AggPersona --> VOContacto
-AggPrestamo --> AggPersona
-AggReserva --> AggPersona
-AggSancion --> AggPersona
+' ============ RELACIONES INTERNAS DEL DOMINIO ============
+AggPersona   --> VoIdentidad
+AggUnidad    --> VoInventario
+AggUnidad    --> AggCatalogo
+AggPrestamo  --> VoPrestamo
+AggPrestamo  --> AggUnidad
+AggPrestamo  --> AggGarantia
+AggReserva   --> AggUnidad
+AggSancion   --> VoSancion
 AggIncidencia --> AggPrestamo
+AggPersona   --> AggAcademico
 
-CommandHandlers --> EventPublisher
-EventPublisher --> EventDB
-EventSubscribers --> EventStorageJpa
+AggReserva   ..> EvReserva
+AggPrestamo  ..> EvPrestamo
+AggIncidencia ..> EvIncidencia
+AggSancion   ..> EvSancion
 
-CommandHandlers --> PortPersonaRepo
-CommandHandlers --> PortPrestamoRepo
-CommandHandlers --> PortReservaRepo
-CommandHandlers --> PortSancionRepo
-CommandHandlers --> PortPoliticaRepo
+' ====== INVERSIÓN DE DEPENDENCIAS: infra implementa puertos ======
+ImplPersona  ..|> PortPersona
+ImplUnidad   ..|> PortUnidad
+ImplReserva  ..|> PortReserva
+ImplPrestamo ..|> PortPrestamo
+ImplSancion  ..|> PortSancion
+ImplPolitica ..|> PortPolitica
+ImplUow      ..|> PortUow
+AdpAcademico ..|> PortAcademico
+AdpNotif     ..|> PortNotificador
+AdpDocs      ..|> PortDocs
+ImplPublisher ..|> PortEventos
+AdpReloj     ..|> PortReloj
 
-ImplPersonaJpa --> DB
-ImplPrestamoJpa --> DB
-ImplReservaJpa --> DB
-ImplSancionJpa --> DB
-EntityMappers --> AggPersona
+ImplPersona  --> ImplMapper
+ImplPrestamo --> ImplMapper
 
-QueryHandlers --> PortPersonaRepo
-QueryHandlers --> ImplPersonaJpa
+' ================= FLUJO 4 -> 5 =================
+ImplPersona   --> DB
+ImplUnidad    --> DB
+ImplReserva   --> DB
+ImplPrestamo  --> DB
+ImplSancion   --> DB
+ImplPolitica  --> DB
+ImplPublisher --> EventDB
+ImplPublisher --> Broker
+Broker        ..> L2E : entrega asíncrona
+AdpDocs       --> Files
+Flyway        --> DB
+Cfg           ..> L2 : inyecta implementaciones
 
-ExtAcademico ..> AppServices
-ExtAuth ..> APIControllers
-ExtNotificaciones ..> CommandHandlers
-ExtAlmacenamiento ..> CommandHandlers
+' ========================= NOTAS =========================
+note right of L3
+  **Regla de dependencia**
+  El dominio no importa Spring, JPA, HTTP ni JSON.
+  Todo lo que necesita del exterior lo declara
+  como puerto; la infraestructura lo implementa
+  (flechas ..|> apuntando hacia arriba).
+end note
 
-DBTransactions --> ImplPersonaJpa
-Logging ..> AppServices
+note bottom of AggPrestamo
+  **Invariantes**
+  · Una UnidadFisica no puede tener dos préstamos activos.
+  · No se entrega si la Persona tiene PeriodoBloqueo vigente
+    o alcanzó el cupo de su PoliticaPrestamo.
+  · fechaDevolucionReal >= fechaEntrega.
+end note
 
-' =========================================================
-' NOTAS Y LEYENDA
-' =========================================================
+note bottom of AggSancion
+  **Invariantes**
+  · Toda Sanción referencia la ReferenciaPolitica aplicada.
+  · Los PeriodoBloqueo de una Persona no se solapan.
+end note
 
 legend bottom
-|= Elemento |= Significado |
-| --> | Dependencia directa |
-| ..> | Dependencia inversa (inyección de dependencias) |
-| *-- | Composición / Pertenencia |
-| interface | Puerta (contrato, no implementacion) |
+|= Símbolo |= Significado |
+| <b>--></b> | Usa / depende directamente (hacia adentro) |
+| <b>..></b> | Depende de una abstracción (puerto) |
+| <b>..|></b> | Implementa el puerto (inversión de dependencias) |
+| <i>interface</i> | Puerto: contrato definido por el dominio |
 endlegend
-
-note bottom of "CAPA DE PRESENTACION"
-  **Responsabilidades:**
-  - Recibir solicitudes HTTP
-  - Validar datos de entrada
-  - Mapear DTOs a comandos/queries
-  - Formatear respuestas JSON
-  - Gestionar sesiones y autenticacion
-end note
-
-note bottom of "CAPA DE APLICACION"
-  **Responsabilidades:**
-  - Orquestar casos de uso
-  - Coordinar entre dominio e infraestructura
-  - Manejar transacciones
-  - Publicar eventos de dominio
-  - NO contiene logica de negocio
-end note
-
-note bottom of "CAPA DE DOMINIO"
-  **Responsabilidades:**
-  - Encapsular toda la logica de negocio
-  - Definir reglas del dominio
-  - Mantener consistencia de agregados
-  - Emitir eventos de dominio
-  - NO depende de otras capas
-end note
-
-note bottom of "CAPA DE INFRAESTRUCTURA"
-  **Responsabilidades:**
-  - Implementar repositorios
-  - Conectar con BD, APIs externas
-  - Gestionar transacciones DB
-  - Publicar/suscribirse a eventos
-  - Logging, caching, configuracion
-end note
 
 @enduml
