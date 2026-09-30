@@ -1,0 +1,116 @@
+@startuml arquitectura-paquetes-clases
+title Extension del dominio a arquitectura en capas\nSistema de prestamos de bienes - EPCC
+left to right direction
+skinparam backgroundColor white
+skinparam shadowing false
+skinparam packageStyle rectangle
+skinparam classAttributeIconSize 0
+skinparam linetype ortho
+hide empty members
+
+package "Presentacion" #E8F4F8 {
+  class ReservaController <<adaptador>> {
+    +solicitar(datos)
+    +confirmar(id)
+  }
+  class PrestamoController <<adaptador>> {
+    +entregar(datos)
+    +devolver(id, acta)
+  }
+}
+
+package "Aplicacion" #EDF8E8 {
+  class GestionarReserva <<caso de uso>> {
+    +solicitar(datos)
+    +confirmar(id)
+  }
+  class GestionarPrestamo <<caso de uso>> {
+    +entregar(datos)
+    +devolver(id, acta)
+  }
+  class UnidadDeTrabajo <<puerto>> {
+    +ejecutarAtomico(operacion)
+  }
+}
+
+package "Dominio" #FFF4E8 {
+  package "BC-03 Catalogo" {
+    class UnidadFisica <<entidad>> {
+      +codigoInventario
+      +estado
+      +marcarPrestada()
+    }
+  }
+  package "BC-04 Politicas" {
+    class PoliticaPrestamo <<agregado>> {
+      +version
+      +condiciones
+    }
+  }
+  package "BC-05 Reservas" {
+    class Reserva <<agregado>> {
+      +intervalo
+      +confirmar()
+      +marcarAtendida()
+    }
+  }
+  package "BC-06 Prestamos" {
+    class Prestamo <<agregado>> {
+      +vencimiento
+      +registrarEntrega()
+      +registrarDevolucion()
+    }
+  }
+  class ValidadorEntrega <<servicio de dominio>> {
+    +validarDisponibilidad()
+    +validarCupo()
+  }
+  interface RepositorioUnidad {
+    +obtener(id)
+    +guardar(unidad)
+  }
+  interface RepositorioReserva {
+    +obtener(id)
+    +guardar(reserva)
+  }
+  interface RepositorioPrestamo {
+    +guardar(prestamo)
+  }
+}
+
+package "Infraestructura" #E8F0F8 {
+  class UnidadSQL <<adaptador>>
+  class ReservaSQL <<adaptador>>
+  class PrestamoSQL <<adaptador>>
+  class TransaccionSQL <<adaptador>>
+  class "Base de datos relacional" as BD <<almacenamiento>>
+}
+
+ReservaController ..> GestionarReserva
+PrestamoController ..> GestionarPrestamo
+GestionarReserva ..> Reserva
+GestionarReserva ..> ValidadorEntrega
+GestionarReserva ..> RepositorioReserva
+GestionarPrestamo ..> Prestamo
+GestionarPrestamo ..> ValidadorEntrega
+GestionarPrestamo ..> RepositorioUnidad
+GestionarPrestamo ..> RepositorioPrestamo
+GestionarPrestamo ..> UnidadDeTrabajo
+ValidadorEntrega ..> PoliticaPrestamo
+ValidadorEntrega ..> UnidadFisica
+Prestamo ..> UnidadFisica : identifica
+Reserva ..> UnidadFisica : identifica
+UnidadSQL ..|> RepositorioUnidad
+ReservaSQL ..|> RepositorioReserva
+PrestamoSQL ..|> RepositorioPrestamo
+TransaccionSQL ..|> UnidadDeTrabajo
+UnidadSQL --> BD
+ReservaSQL --> BD
+PrestamoSQL --> BD
+TransaccionSQL --> BD
+
+legend bottom
+  ..> usa contrato o clase; ..|> implementa un puerto
+  Las reglas residen en el dominio; las transacciones coordinan varios agregados.
+endlegend
+@enduml

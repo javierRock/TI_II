@@ -3,6 +3,26 @@
 
 Los requisitos describen comportamientos verificables. Se conservan los identificadores RF-001 a RF-026 del borrador y se a\~naden requisitos para completar autenticaci\'on, estados, renovaciones e historial personal. Las condiciones configurables requieren aprobaci\'on conforme a la secci\'on~\ref{sec:pendientes}.
 
+\section{Resumen para la exposici\'on}
+
+\begin{table}[htbp]
+\centering\small
+\begin{tabularx}{\textwidth}{@{}p{3cm}p{3cm}Y@{}}
+\toprule
+\textbf{Necesidad} & \textbf{Requisitos} & \textbf{Contextos del modelo UML} \\
+\midrule
+Identificar y habilitar & RF-001--004, RF-027 & Identidad y acceso (BC-01); vinculaci\'on acad\'emica (BC-02). \\
+Describir y ubicar bienes & RF-005--008, RF-029 & Cat\'alogo e inventario (BC-03). \\
+Definir reglas y reservar & RF-009--013 & Pol\'iticas (BC-04); reservas (BC-05). \\
+Entregar, renovar y devolver & RF-014--017, RF-028, RF-030 & Pr\'estamos (BC-06), con consulta de BC-03 a BC-05. \\
+Responder y dar seguimiento & RF-018--026, RF-031 & Garant\'ias, incidencias, sanciones y auditor\'ia (BC-07 a BC-10). \\
+\bottomrule
+\end{tabularx}
+\caption{Del requisito a las clases agrupadas por contexto}
+\end{table}
+
+Por ejemplo, RF-015 exige verificar el cupo y la disponibilidad al entregar: \texttt{ValidadorEntrega} expresa esas reglas y \texttt{GestionarPrestamo} coordina su aplicaci\'on, como muestra el cap\'itulo~\ref{cap:arquitectura}.
+
 \section{Identidad, acceso y perfiles}
 
 \subsection{Registro de personas}
@@ -12,7 +32,7 @@ Los requisitos describen comportamientos verificables. Se conservan los identifi
 \textbf{RF-002.} Una persona registrada puede tener cero o una cuenta; cada cuenta pertenece a exactamente una persona. La cuenta debe contener nombre de usuario \'unico, hash de contrase\~na y estado activo o inactivo. Una cuenta activa requiere una persona activa. La desactivaci\'on impide nuevos accesos y nuevas solicitudes, pero no impide al administrador registrar devoluciones o resolver obligaciones existentes.
 
 \subsection{Asignaci\'on de roles}
-\textbf{RF-003.} Cada cuenta debe tener exactamente un rol: administrador, docente o estudiante. Solo el administrador puede asignar roles. Docentes y estudiantes no deben poder ejecutar operaciones administrativas ni acceder a registros privados de otras personas.
+\textbf{RF-003.} Cada persona con cuenta debe tener un rol base: personal administrativo, docente o estudiante. Solo el personal autorizado puede asignar roles y atribuciones administrativas. Un estudiante nunca recibe atribuciones administrativas; ning\'un solicitante debe acceder a registros privados de otras personas. El otorgamiento y la delegaci\'on requieren autorizaci\'on institucional previa.
 
 \subsection{Perfiles por rol}
 \textbf{RF-004.} Una cuenta estudiante debe tener un perfil con c\'odigo universitario \'unico, programa y semestre v\'alido para su plan de estudios. Una cuenta docente debe tener un perfil con c\'odigo institucional \'unico, especialidad y vinculaci\'on con la Escuela. Un cambio de rol debe validar el perfil correspondiente y no alterar el historial previo.
@@ -23,7 +43,7 @@ Los requisitos describen comportamientos verificables. Se conservan los identifi
 \section{Cat\'alogo e inventario}
 
 \subsection{Tipos y fichas de bienes}
-\textbf{RF-005.} El cat\'alogo debe distinguir los tipos libro, mesa de ping-pong, visor 3D, parlante y carrito para rob\'otica. Cada ficha de bien contiene nombre, tipo y descripci\'on; para libros incluye t\'itulo, autor, edici\'on e ISBN cuando exista, y para dispositivos, marca y modelo cuando corresponda. No debe permitir incorporar computadoras ni recursos adscritos a laboratorios al inventario prestable.
+\textbf{RF-005.} El cat\'alogo debe distinguir los tipos libro, mesa de ping-pong, visor 3D, parlante y carrito para rob\'otica. Cada ficha contiene nombre, tipo y descripci\'on; sus caracter\'isticas definidas por tipo permiten registrar t\'itulo, autor, edici\'on e ISBN para libros, o marca y modelo para dispositivos. El modelo admite nuevas categor\'ias y caracter\'isticas, pero solo esos cinco tipos se habilitan en este alcance: no se incorporan computadoras ni recursos adscritos a laboratorios al inventario prestable.
 
 \subsection{Unidades f\'isicas}
 \textbf{RF-006.} Cada unidad debe tener un c\'odigo de inventario obligatorio y \'unico, referencia a su ficha de bien, adscripci\'on o custodia institucional, ubicaci\'on, condici\'on f\'isica, accesorios y observaciones. Solo se admite una unidad bajo custodia de la Escuela y no adscrita a laboratorios; su ubicaci\'on f\'isica no sustituye esa verificaci\'on. La serie y la fecha de adquisici\'on son opcionales si no se conocen o no aplican. La serie, cuando se registre, se controla junto con marca y modelo para evitar duplicados. Varios ejemplares de un libro pueden compartir ISBN, pero no c\'odigo de inventario.

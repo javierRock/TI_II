@@ -1,8 +1,53 @@
 \chapter{Modelo de dominio}
 \label{cap:modelo}
 
-El modelo representa los conceptos del servicio de pr\'estamos de la Escuela, sus relaciones y reglas. Es conceptual: orienta el esquema relacional, pero no prescribe todav\'ia tablas, interfaz o tecnolog\'ia de despliegue. Se distingue entre \textbf{tipo de bien} (por ejemplo, libro), \textbf{bien} (la ficha de un t\'itulo o modelo) y \textbf{unidad de inventario} (el ejemplar concreto que se presta).
+El modelo de dominio describe \textbf{qu\'e conceptos existen y qu\'e reglas los relacionan}; no describe pantallas ni tablas. La figura~\ref{fig:dominio} es el diagrama de clases UML de referencia. Sus paquetes BC (\emph{bounded contexts} o contextos delimitados) separan responsabilidades; el n\'ucleo compartido re\'une identificadores y objetos de valor como \texttt{IntervaloTiempo} y \texttt{Dinero}. Una clase marcada como \emph{agregado ra\'iz} controla cambios que deben mantenerse consistentes dentro de su l\'imite.
 
-\input{secciones/modelo/01_entidades}
-\input{secciones/modelo/02_relaciones}
-\input{secciones/modelo/03_reglas}
+\begin{landscape}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=.98\linewidth,height=.78\textheight,keepaspectratio]{modelo-de-dominio.png}
+    \caption{Modelo UML completo de dominio (fuente: \texttt{assets/modelo-de-dominio.png}).}
+    \label{fig:dominio}
+\end{figure}
+\end{landscape}
+
+\section{Lectura del diagrama: del solicitante a la devoluci\'on}
+
+\begin{enumerate}
+    \item \textbf{Identidad y acceso (BC-01) y vinculaci\'on acad\'emica (BC-02):} \texttt{Persona} identifica al miembro de la Escuela; \texttt{Cuenta} gestiona su acceso y el perfil describe su condici\'on. El diagrama modela \texttt{RecordAcademico} y \texttt{Matricula} para consultar la situaci\'on estudiantil. Como esta consulta no est\'a confirmada para la primera versi\'on, la verificaci\'on puede hacerse con datos registrados por el administrador; la conexi\'on institucional queda como extensi\'on.
+    \item \textbf{Cat\'alogo e inventario (BC-03):} \texttt{TipoBien} define la clase de recurso, \texttt{FichaBien} describe el t\'itulo o modelo y \texttt{UnidadFisica} identifica el ejemplar con c\'odigo de inventario propio. \texttt{CategoriaBien}, \texttt{CaracteristicaDefinida} y \texttt{ValorCaracteristica} permiten ampliar la descripci\'on sin cambiar el esquema conceptual. En el alcance de este examen solo se habilitan los cinco tipos enumerados en el cap\'itulo~\ref{cap:contexto}; la flexibilidad del diagrama no autoriza incorporar equipos de laboratorio.
+    \item \textbf{Pol\'iticas (BC-04):} \texttt{PoliticaPrestamo} determina cupo, plazo, modalidad y garant\'ia. \texttt{PoliticaAplicada} guarda una copia inmutable de las condiciones usadas; as\'i, cambiar una regla ma\~nana no modifica un pr\'estamo de ayer. El criterio por condici\'on acad\'emica aparece en el diagrama como extensi\'on sujeta a aprobaci\'on.
+    \item \textbf{Operaci\'on principal (BC-05 y BC-06):} \texttt{Reserva} solicita una unidad para un intervalo; solo al confirmarse bloquea ese intervalo. \texttt{Prestamo} registra una entrega concreta y una fecha de vencimiento. \texttt{Renovacion} ampl\'ia el plazo sin crear otro pr\'estamo; \texttt{ActaEntrega} y \texttt{ActaDevolucion} conservan la condici\'on y accesorios observados.
+    \item \textbf{Cierre y seguimiento (BC-07 a BC-10):} \texttt{Garantia} respalda el pr\'estamo si la pol\'itica la exige; \texttt{Incidencia} documenta da\~no o p\'erdida; \texttt{Sancion} registra una consecuencia solo si hay fundamento aprobado. \texttt{EventoHistorial} permite reconstruir qui\'en hizo qu\'e y cu\'ando.
+\end{enumerate}
+
+La figura~\ref{fig:prestamo-detalle} ampl\'ia el contexto de pr\'estamos del diagrama general. Permite distinguir el agregado \texttt{Prestamo}, su secuencia de \texttt{Renovacion} y las actas que registran la entrega y la devoluci\'on.
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=.98\textwidth,height=.68\textheight,keepaspectratio]{dominio-prestamos-detalle.png}
+    \caption{Detalle de BC-06 extra\'ido del modelo de dominio.}
+    \label{fig:prestamo-detalle}
+\end{figure}
+
+\section{Relaciones y reglas que no deben romperse}
+
+Una \texttt{FichaBien} describe muchas \texttt{UnidadFisica}, pero cada unidad pertenece a una sola ficha. Una unidad puede aparecer en muchos pr\'estamos hist\'oricos, \textbf{nunca en dos pr\'estamos abiertos simult\'aneos}. Una reserva puede originar a lo sumo un pr\'estamo; un pr\'estamo puede nacer sin reserva. Cada pr\'estamo tiene un solicitante, una unidad y un administrador que autoriza; puede incluir renovaciones e incidencias, y una garant\'ia como m\'aximo seg\'un el alcance definido. La fecha de devoluci\'on no puede preceder a la entrega.
+
+Dos intervalos $[i_1,f_1)$ y $[i_2,f_2)$ se solapan cuando $i_1<f_2$ y $i_2<f_1$. Al confirmar una reserva, entregar o renovar, el sistema vuelve a comprobar \textbf{disponibilidad de la unidad y cupo del solicitante en una transacci\'on}. El vencimiento no libera la unidad: sigue prestada hasta la devoluci\'on o el cierre por p\'erdida. Una incidencia no crea autom\'aticamente una sanci\'on.
+
+El diagrama separa el rol base de la persona de una \texttt{AtribucionAdministrativa} delegable. Para este alcance, los permisos administrativos solo se otorgan a personal autorizado por la Escuela; un estudiante no puede recibirlos. La delegaci\'on y sus reglas detalladas requieren validaci\'on antes de implementarse.
+
+\section{Mapa de contextos}
+
+La figura~\ref{fig:contextos} presenta los mismos diez contextos agrupados en principal, soporte y gen\'erico. Las flechas indican qui\'en provee informaci\'on a qui\'en la consume: por ejemplo, cat\'alogo aporta la identidad de la unidad a reservas y pr\'estamos; pol\'iticas aporta las condiciones de uso. \textbf{Estos contextos no equivalen a capas t\'ecnicas}: cada uno conserva sus conceptos cuando se organiza el software en presentaci\'on, aplicaci\'on, dominio e infraestructura.
+
+\begin{landscape}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=.98\linewidth,height=.76\textheight,keepaspectratio]{mapa-de-contextos.png}
+    \caption{Subdominios y flujo de informaci\'on entre contextos. Fuente: \texttt{assets/mapa-de-contextos.png}.}
+    \label{fig:contextos}
+\end{figure}
+\end{landscape}

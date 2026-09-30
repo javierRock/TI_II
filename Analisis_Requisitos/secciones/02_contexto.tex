@@ -39,11 +39,11 @@ El estado \emph{mantenimiento} solo indicar\'a que un bien no puede prestarse; n
 \section{Usuarios, roles y perfiles}
 \label{sec:actores}
 
-Se consideran los tres roles identificados en los apuntes. Una persona puede registrarse antes de contar con acceso; para reservar o recibir un pr\'estamo debe tener una cuenta activa y un perfil habilitado.
+Se consideran tres roles base: estudiante, docente y personal administrativo. Una persona puede registrarse antes de contar con acceso; para reservar o recibir un pr\'estamo debe tener una cuenta activa y un perfil habilitado. El diagrama de dominio tambi\'en contempla atribuciones administrativas: representan permisos operativos que la Escuela puede otorgar a personal autorizado, sin cambiar su rol base.
 
 \subsection{Administrador}
 
-Es el responsable operativo del servicio. Registra personas y cuentas, mantiene el inventario, configura pol\'iticas aprobadas, confirma o rechaza reservas, autoriza entregas y renovaciones, registra devoluciones, administra garant\'ias e incidencias y resuelve sanciones. Puede consultar el historial general y los reportes. El rol administrativo no habilita pr\'estamos personales en esta versi\'on.
+Es el responsable operativo del servicio y debe contar con atribuci\'on vigente. Registra personas y cuentas, mantiene el inventario, configura pol\'iticas aprobadas, confirma o rechaza reservas, autoriza entregas y renovaciones, registra devoluciones, administra garant\'ias e incidencias y resuelve sanciones. Puede consultar el historial general y los reportes. El personal administrativo no solicita pr\'estamos personales en esta versi\'on.
 
 \subsection{Docente}
 
@@ -75,8 +75,9 @@ Los siguientes puntos deben acordarse con la Escuela antes de implementar o pone
     \item Confirmaci\'on del uso de la mesa de ping-pong en su ubicaci\'on y de las modalidades de uso o retiro de los dem\'as bienes. Los turnos por horas son una propuesta, no una regla institucional verificada.
     \item Tipos de garant\'ia autorizados, custodia y condiciones de liberaci\'on. No se presume autorizaci\'on para retener DNI u otros documentos personales.
     \item Existencia y cuant\'ia de multas, periodos de bloqueo, tolerancias y procedimiento de apelaci\'on. No se aplicar\'an cobros sin una pol\'itica aprobada.
-    \item Vigencia de perfiles, plan de estudios, responsables operativos y procedimiento ante bienes perdidos.
+    \item Vigencia de perfiles, verificaci\'on de matr\'icula y condiciones acad\'emicas, responsables operativos y procedimiento ante bienes perdidos.
+    \item Autoridad para otorgar o delegar atribuciones administrativas y criterios para revocarlas. Ning\'un estudiante puede recibirlas.
     \item Plataforma de despliegue, volumen de uso, respaldos y plazos de conservaci\'on de datos personales e historial.
 \end{itemize}
 
-Como simplificaci\'on de esta versi\'on se propone una sola cuenta y un solo rol por persona, una unidad por pr\'estamo y como m\'aximo una garant\'ia por pr\'estamo. El registro de varias unidades requiere operaciones individuales, todas sujetas al l\'imite total del solicitante.
+Como simplificaci\'on de esta versi\'on se propone una sola cuenta y un solo rol base por persona, una unidad por pr\'estamo y como m\'aximo una garant\'ia por pr\'estamo. El registro de varias unidades requiere operaciones individuales, todas sujetas al l\'imite total del solicitante.

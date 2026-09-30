@@ -1,0 +1,41 @@
+\chapter{Modelo de dominio extendido: arquitectura en capas}
+\label{cap:arquitectura}
+
+El diagrama de clases del cap\'itulo~\ref{cap:modelo} responde \emph{qu\'e representa el sistema}. Su extensi\'on, en la figura~\ref{fig:capas-uml}, responde \emph{d\'onde vive cada responsabilidad y de qui\'en depende}. Es un diagrama UML de \textbf{paquetes y clases}: conserva las clases \texttt{UnidadFisica}, \texttt{PoliticaPrestamo}, \texttt{Reserva} y \texttt{Prestamo} del dominio, y agrega controladores, casos de uso, contratos e implementaciones. La figura muestra una selecci\'on representativa, no todas las clases del modelo original.
+
+\begin{landscape}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=.98\linewidth,height=.78\textheight,keepaspectratio]{arquitectura-paquetes-clases.png}
+    \caption{Extensi\'on UML: paquetes y clases en cuatro capas. Fuente editable: \texttt{codigo\_puml/arquitectura-paquetes-clases.puml}.}
+    \label{fig:capas-uml}
+\end{figure}
+\end{landscape}
+
+\section{Responsabilidad de cada capa}
+
+\begin{description}
+    \item[Presentaci\'on.] Recibe solicitudes, valida el formato de los datos y muestra el resultado. \texttt{ReservaController} y \texttt{PrestamoController} delegan las decisiones: no calculan cupos ni sanciones.
+    \item[Aplicaci\'on.] \texttt{GestionarReserva} y \texttt{GestionarPrestamo} coordinan cada caso de uso: obtienen datos, invocan reglas y registran cambios. \texttt{UnidadDeTrabajo} define el l\'imite transaccional para confirmar juntos reserva, pr\'estamo, estado de unidad e historial cuando corresponde.
+    \item[Dominio.] Los contextos BC-03 a BC-06 conservan las clases del modelo original. \texttt{ValidadorEntrega} comprueba disponibilidad y cupo con la pol\'itica aplicable. Los repositorios son \emph{interfaces}: expresan lo que necesita el negocio sin acoplarlo a una base de datos concreta. Los dem\'as contextos (identidad, garant\'ias, incidencias, sanciones y auditor\'ia) siguen el mismo criterio.
+    \item[Infraestructura.] Los adaptadores SQL implementan esos contratos y acceden al almacenamiento. \texttt{TransaccionSQL} implementa el l\'imite transaccional. Aqu\'i se resuelve el bloqueo o aislamiento necesario para evitar dos entregas de la misma unidad.
+\end{description}
+
+\textbf{Regla de dependencia:} presentaci\'on llama a aplicaci\'on; aplicaci\'on usa el dominio y sus interfaces; infraestructura implementa esas interfaces. El dominio no importa controladores, SQL ni herramientas web. Las flechas discontinuas con tri\'angulo en la figura significan \emph{implementa interfaz}: la dependencia del c\'odigo apunta al contrato del dominio.
+
+\section{Ejemplo del Diagrama}
+
+Cuando un administrador confirma una entrega, \texttt{PrestamoController} recibe la solicitud y llama a \texttt{GestionarPrestamo}. El caso de uso recupera la unidad, el solicitante, la reserva si existe y la pol\'itica aprobada. \texttt{ValidadorEntrega} comprueba cuenta y perfil habilitados, bloqueo, cupo, intervalo, estado de la unidad y garant\'ia exigible. Si la validaci\'on falla, no se registra el pr\'estamo. Si pasa, una sola transacci\'on crea \texttt{Prestamo}, marca \texttt{UnidadFisica} como prestada, atiende la reserva de origen y guarda el evento de historial. Los adaptadores persisten estos cambios; un fallo revierte la operaci\'on completa. Este recorrido concreta RF-013 a RF-015 y RNF-002 sin confundir una consulta previa de disponibilidad con la verificaci\'on final.
+
+\section{Vista complementaria de componentes}
+
+La figura~\ref{fig:arquitectura-general} es la vista de componentes existente en el proyecto. Ayuda a ubicar posibles controladores, servicios, puertos y adaptadores a mayor escala; la figura~\ref{fig:capas-uml} es la referencia para la \textbf{extensi\'on de clases y paquetes} pedida en el examen. En la vista general aparecen API, autenticaci\'on externa, mensajer\'ia, correo y almacenamiento de archivos como opciones de evoluci\'on, no como funcionalidades exigidas ni implementadas en el alcance actual. En particular, vencer una reserva no libera una unidad que a\'un est\'a prestada, y el retraso se calcula seg\'un la pol\'itica aprobada, no necesariamente en d\'ias h\'abiles.
+
+\begin{landscape}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=.98\linewidth,height=.76\textheight,keepaspectratio]{arquitectura-en-capas-epcc.png}
+    \caption{Vista complementaria de componentes y adaptadores propuestos. Fuente: \texttt{assets/arquitectura-en-capas-epcc.png}.}
+    \label{fig:arquitectura-general}
+\end{figure}
+\end{landscape}
