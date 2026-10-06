@@ -26,3 +26,11 @@
 
 # Documento compilado
 /Analisis_Requisitos/main.pdf
+
+# Backend: dependencias, secretos y datos locales
+node_modules/
+.env
+.env.*
+!.env.example
+.local/
+coverage/
