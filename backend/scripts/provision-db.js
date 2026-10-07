@@ -5,13 +5,13 @@ import { databaseUrls } from '../src/config/env.js';
 export const identifier = (value) => `"${value.replaceAll('"', '""')}"`;
 const literal = (value) => `'${value.replaceAll("'", "''")}'`;
 
-export async function provisionDatabases() {
+export async function provisionDatabases({ additionalDatabases = [] } = {}) {
   if (!process.env.ADMIN_DATABASE_URL) throw new Error('Configurar ADMIN_DATABASE_URL para aprovisionar');
   const admin = new pg.Client({ connectionString: process.env.ADMIN_DATABASE_URL });
   await admin.connect();
   try {
-    for (const test of [false, true]) {
-      const urls = databaseUrls({ test });
+    const databases = [databaseUrls(), databaseUrls({ test: true }), ...additionalDatabases];
+    for (const urls of databases) {
       const owner = new URL(urls.migration);
       const api = new URL(urls.application);
       const adminUrl = new URL(process.env.ADMIN_DATABASE_URL);

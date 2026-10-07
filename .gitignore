@@ -32,5 +32,8 @@ node_modules/
 .env
 .env.*
 !.env.example
+!.env.docker.example
 .local/
 coverage/
+# Respaldos locales: pueden contener datos personales y hashes.
+*.dump

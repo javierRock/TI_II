@@ -1,19 +1,118 @@
+name: prestamos
+
+x-runtime: &runtime
+  image: prestamos-app:local
+  build:
+    context: .
+    dockerfile: Dockerfile
+  init: true
+  read_only: true
+  tmpfs:
+    - /tmp
+  cap_drop:
+    - ALL
+  security_opt:
+    - no-new-privileges:true
+
+x-api-environment: &api-environment
+  NODE_ENV: development
+  SKIP_DOTENV: "1"
+  HOST: 0.0.0.0
+  PORT: "3000"
+  APP_ORIGIN: ${APP_ORIGIN:-http://localhost:3000}
+  DOCKER_DB_HOST: postgres
+  DOCKER_DB_NAME: prestamos
+  POSTGRES_API_PASSWORD: ${DOCKER_API_PASSWORD:?Generar .env.docker; ver docs/docker.md}
+
+x-web: &web
+  <<: *runtime
+  command: ["serve"]
+  restart: unless-stopped
+  ports:
+    - "127.0.0.1:${APP_PORT:-3000}:3000"
+  healthcheck:
+    test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/api/v1/health',{signal:AbortSignal.timeout(3000)}).then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+    interval: 10s
+    timeout: 5s
+    retries: 6
+    start_period: 15s
+
 services:
   postgres:
-    image: postgres:18
+    image: postgres:18-bookworm
     environment:
       POSTGRES_USER: prestamos_local_admin
-      POSTGRES_PASSWORD: ${LOCAL_POSTGRES_ADMIN_PASSWORD:?Configurar .env}
+      POSTGRES_PASSWORD: ${DOCKER_POSTGRES_PASSWORD:?Generar .env.docker; ver docs/docker.md}
       POSTGRES_DB: postgres
-    ports:
-      - "127.0.0.1:${PG_LOCAL_PORT:-55432}:5432"
+    restart: unless-stopped
     volumes:
       - postgres_data:/var/lib/postgresql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U prestamos_local_admin -d postgres"]
       interval: 5s
       timeout: 5s
-      retries: 10
+      retries: 20
+    # Sin puerto de PostgreSQL publicado en el equipo anfitrión.
+
+  initialize:
+    <<: *runtime
+    command: ["init"]
+    environment:
+      <<: *api-environment
+      POSTGRES_ADMIN_PASSWORD: ${DOCKER_POSTGRES_PASSWORD:?Generar .env.docker}
+      POSTGRES_OWNER_PASSWORD: ${DOCKER_OWNER_PASSWORD:?Generar .env.docker}
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  app:
+    <<: *web
+    profiles: ["normal"]
+    environment:
+      <<: *api-environment
+    depends_on:
+      initialize:
+        condition: service_completed_successfully
+      postgres:
+        condition: service_healthy
+
+  demo-seed:
+    <<: *runtime
+    profiles: ["demo"]
+    command: ["seed-demo"]
+    environment:
+      <<: *api-environment
+      DOCKER_DB_NAME: prestamos_demo
+      DEMO_MODE: "true"
+      POSTGRES_OWNER_PASSWORD: ${DOCKER_OWNER_PASSWORD:?Generar .env.docker}
+      DEMO_ADMIN_PASSWORD: ${DEMO_ADMIN_PASSWORD:-}
+      DEMO_USER_PASSWORD: ${DEMO_USER_PASSWORD:-}
+    depends_on:
+      initialize:
+        condition: service_completed_successfully
+
+  demo-app:
+    <<: *web
+    profiles: ["demo"]
+    environment:
+      <<: *api-environment
+      DOCKER_DB_NAME: prestamos_demo
+    depends_on:
+      demo-seed:
+        condition: service_completed_successfully
+      postgres:
+        condition: service_healthy
+
+  manage:
+    <<: *runtime
+    profiles: ["tools"]
+    command: ["check"]
+    environment:
+      <<: *api-environment
+      POSTGRES_OWNER_PASSWORD: ${DOCKER_OWNER_PASSWORD:?Generar .env.docker}
+    depends_on:
+      initialize:
+        condition: service_completed_successfully
 
 volumes:
   postgres_data:

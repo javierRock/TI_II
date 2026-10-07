@@ -1,0 +1,17 @@
+**
+!Dockerfile
+!backend/
+!backend/package.json
+!backend/package-lock.json
+!backend/src/
+!backend/src/**
+!backend/scripts/
+!backend/scripts/**
+!backend/db/
+!backend/db/**
+!frontend/
+!frontend/**
+**/node_modules
+**/.env
+**/.env.*
+**/*.log

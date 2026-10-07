@@ -1,11 +1,10 @@
 import { runner } from 'node-pg-migrate';
 import pg from 'pg';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import { databaseUrls } from '../src/config/env.js';
 import { identifier } from './provision-db.js';
 
-try {
-  const { migration, application } = databaseUrls({ test: process.argv.includes('--test') });
+export async function migrateDatabase({ migration, application }) {
   await runner({
     databaseUrl: migration,
     dir: fileURLToPath(new URL('../db/migrations/', import.meta.url)),
@@ -31,7 +30,13 @@ try {
     await client.end();
   }
   console.log('Migraciones y permisos aplicados.');
-} catch (error) {
-  console.error('Error al migrar:', error.code ?? error.message);
-  process.exitCode = 1;
+}
+
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  try {
+    await migrateDatabase(databaseUrls({ test: process.argv.includes('--test') }));
+  } catch (error) {
+    console.error('Error al migrar:', error.code ?? error.message);
+    process.exitCode = 1;
+  }
 }

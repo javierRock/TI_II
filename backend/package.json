@@ -15,8 +15,10 @@
     "db:check": "node scripts/check-db.js",
     "db:backup": "node scripts/backup-db.js",
     "admin:create": "node scripts/crear-admin.js",
+    "db:seed:demo": "node scripts/seed-demo.js",
     "test": "node --test tests/unit/*.test.js",
     "test:integration": "node scripts/migrate.js --test && node --test --test-concurrency=1 tests/integration/*.test.js tests/concurrency/*.test.js",
+    "test:demo": "node --test --test-concurrency=1 tests/demo/*.test.js",
     "test:browser": "node scripts/migrate.js --test && node --test --test-concurrency=1 tests/browser/*.test.js"
   },
   "dependencies": {

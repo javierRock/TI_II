@@ -19,6 +19,48 @@ Sistema incremental con **Node.js 22+, Express 5 y PostgreSQL**, y frontend en
 No es un servicio listo para producción. Reservas, renovaciones, garantías,
 incidencias, pérdidas y sanciones se incorporarán por etapas.
 
+## Docker: Linux, macOS y Windows
+
+Se puede ejecutar todo con **Docker Compose v2**, sin instalar Node.js ni PostgreSQL
+en el equipo. En macOS/Windows usar Docker Desktop con contenedores Linux; en Linux,
+Docker Engine y el plugin Compose, o Docker Desktop. La imagen no fija arquitectura:
+usa las variantes nativas de Node/PostgreSQL para AMD64 y ARM64.
+
+Guía completa: **[docs/docker.md](docs/docker.md)**.
+
+Desde la raíz, generar credenciales privadas una vez. En Linux/macOS:
+
+```sh
+docker run --rm --user "$(id -u):$(id -g)" -v "${PWD}:/workspace" -w /workspace node:22-bookworm-slim node backend/scripts/docker-config.js
+```
+
+En Windows PowerShell:
+
+```powershell
+docker run --rm -v "${PWD}:/workspace" -w /workspace node:22-bookworm-slim node backend/scripts/docker-config.js
+```
+
+Iniciar una demostración completa:
+
+```sh
+docker compose --env-file .env.docker --profile demo up --build -d
+```
+
+Abrir **http://localhost:3000**. Usuario administrador: **`demo.admin`**; contraseña:
+el valor `DEMO_ADMIN_PASSWORD` de `.env.docker`. Los usuarios `demo.estudiante1`,
+`demo.estudiante2` y `demo.docente` usan `DEMO_USER_PASSWORD`.
+
+La demo incluye un plan ficticio, cinco fichas, siete unidades, una política de
+prueba, un préstamo abierto y uno devuelto. Solo se carga en **`prestamos_demo`**,
+nunca en la base principal. No cambia contraseñas ni operaciones al repetirse.
+Para una instalación sin datos ficticios usar `--profile normal` y crear el primer
+administrador con el comando interactivo indicado en la guía. No iniciar ambos
+perfiles web a la vez: comparten el puerto de la interfaz.
+
+Los datos Docker están en un volumen independiente de `.local/postgres/`. No se
+importan automáticamente las cuentas locales. `.env.docker` está excluido de Git
+y de la imagen. No subirlo ni compartirlo.
+
 ## Inicio rápido: PostgreSQL instalado localmente
 
 Requiere `node`, `npm`, `initdb`, `pg_ctl`, `pg_dump` y `pg_restore` en el PATH.
@@ -59,30 +101,10 @@ npm run db:local -- stop
 Volver a iniciarla no elimina ni recrea sus datos. No usar `db:local` contra un
 cluster ajeno al proyecto. No hay arranque automático después de reiniciar el equipo.
 
-## Alternativa: contenedor
-
-No ejecutar el contenedor y la instancia local a la vez: comparten puerto.
-Crear `.env` a partir de `.env.example` con credenciales propias y coherentes
-entre `LOCAL_POSTGRES_ADMIN_PASSWORD` y `ADMIN_DATABASE_URL`.
-
-Desde la raíz:
-
-```sh
-docker compose up -d
-```
-
-Desde `backend/`:
-
-```sh
-npm ci
-npm run db:provision
-npm run db:migrate
-npm run dev
-```
-
-La alternativa de contenedor no se ha ejecutado en este avance; la validación
-se hizo con PostgreSQL instalado localmente. El aprovisionamiento crea roles
-limitados y bases principal/pruebas sin sobrescribir contraseñas de roles existentes.
+La alternativa Docker está descrita arriba y en `docs/docker.md`. No publica el
+puerto PostgreSQL, por lo que no colisiona con la instancia local de base de datos.
+El servidor web local y Docker sí comparten por defecto el puerto 3000: detener
+uno o cambiar `APP_PORT` y `APP_ORIGIN` de Docker.
 
 ## Pruebas
 

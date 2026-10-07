@@ -15,8 +15,8 @@ pool.on('error', (error) => console.error('Error de conexión PostgreSQL', { cod
 const server = createApp(pool, {
   production: env.NODE_ENV === 'production', appOrigin: env.APP_ORIGIN,
   sessionHours: env.SESSION_HOURS, loginLimit: env.LOGIN_LIMIT,
-}).listen(env.PORT, '127.0.0.1', () => {
-  console.log(`API disponible en http://127.0.0.1:${env.PORT}`);
+}).listen(env.PORT, env.HOST, () => {
+  console.log(`Aplicación disponible en ${env.APP_ORIGIN}`);
 });
 
 let closing = false;

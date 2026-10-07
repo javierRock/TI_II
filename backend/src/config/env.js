@@ -5,7 +5,7 @@ import { z } from 'zod';
 export const projectRoot = fileURLToPath(new URL('../../../', import.meta.url));
 // .env reúne credenciales de herramientas locales. No cargarlas en producción:
 // el servicio y el proceso de migraciones deben recibir secretos separados.
-if (process.env.NODE_ENV !== 'production') {
+if (process.env.NODE_ENV !== 'production' && process.env.SKIP_DOTENV !== '1') {
   dotenv.config({ path: `${projectRoot}.env`, quiet: true });
 }
 
@@ -18,6 +18,7 @@ export function readEnv(source = process.env) {
   const result = z.object({
     NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
     PORT: z.coerce.number().int().min(1).max(65535).default(3000),
+    HOST: z.enum(['127.0.0.1', '0.0.0.0']).default('127.0.0.1'),
     DATABASE_URL: postgresUrl,
     APP_ORIGIN: z.url().optional(),
     SESSION_HOURS: z.coerce.number().int().min(1).max(168).default(8),
