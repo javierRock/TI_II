@@ -16,7 +16,8 @@
     "db:backup": "node scripts/backup-db.js",
     "admin:create": "node scripts/crear-admin.js",
     "test": "node --test tests/unit/*.test.js",
-    "test:integration": "node scripts/migrate.js --test && node --test --test-concurrency=1 tests/integration/*.test.js tests/concurrency/*.test.js"
+    "test:integration": "node scripts/migrate.js --test && node --test --test-concurrency=1 tests/integration/*.test.js tests/concurrency/*.test.js",
+    "test:browser": "node scripts/migrate.js --test && node --test --test-concurrency=1 tests/browser/*.test.js"
   },
   "dependencies": {
     "argon2": "^0.45.1",
@@ -29,6 +30,7 @@
     "zod": "^4.1.0"
   },
   "devDependencies": {
-    "node-pg-migrate": "^9.0.0"
+    "node-pg-migrate": "^9.0.0",
+    "playwright": "^1.63.0"
   }
 }

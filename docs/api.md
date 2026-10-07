@@ -153,7 +153,7 @@ Baja:
 ```
 
 Una unidad prestada no se modifica ni se da de baja desde estas rutas. Debe
-registrarse su devolución mediante el módulo de préstamos pendiente. Una unidad
+registrarse su devolución mediante el módulo de préstamos. Una unidad
 de baja no se reactiva. No existen endpoints DELETE.
 
 ## Errores y límites
@@ -170,7 +170,8 @@ Las respuestas no publican SQL, hashes o tokens de sesión. Argon2id usa 64 MiB,
 tres iteraciones y paralelismo 1. El límite de login es en memoria y por proceso;
 se debe usar un almacenamiento compartido si se ejecutan múltiples instancias.
 La API aún no ofrece reset de contraseña, delegación administrativa, reservas,
-renovaciones, garantías, incidencias, sanciones ni cierre por pérdida. No contiene frontend.
+renovaciones, garantías, incidencias, sanciones ni cierre por pérdida.
+La interfaz HTML5/CSS/JavaScript se sirve en `/` desde el mismo origen; ver [frontend.md](frontend.md).
 
 ## Políticas versionadas
 

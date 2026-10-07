@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>Préstamos · Escuela</title>
+  <link rel="stylesheet" href="/styles.css">
+  <script type="module" src="/js/app.js"></script>
+</head>
+<body>
+  <a class="skip-link" href="#content">Saltar al contenido</a>
+  <header class="topbar">
+    <a class="brand" href="#catalogo"><span class="brand-mark" aria-hidden="true">P</span><span>Préstamos<small>Bienes de la Escuela</small></span></a>
+    <div id="session" hidden><span id="identity"></span><button id="logout" class="secondary" type="button">Cerrar sesión</button></div>
+  </header>
+  <div id="notice" role="status" aria-live="polite" hidden></div>
+  <section id="login" class="login-layout" hidden>
+    <div class="intro"><p class="eyebrow">CUSTODIA Y RESPONSABILIDAD</p><h1>Los recursos de la Escuela,<br>al alcance de su comunidad.</h1><p>Consulta los bienes disponibles y lleva un registro claro de cada entrega y devolución.</p><div class="intro-note">Libros · Mesas de ping-pong · Visores 3D · Parlantes · Carritos de robótica</div></div>
+    <form id="login-form" class="panel login-card">
+      <h2>Iniciar sesión</h2><p>Usa tu cuenta institucional autorizada.</p>
+      <label>Usuario<input name="nombre_usuario" autocomplete="username" maxlength="64" required></label>
+      <label>Contraseña<input name="password" type="password" autocomplete="current-password" maxlength="128" required></label>
+      <p id="login-error" class="error" role="alert" hidden></p>
+      <button type="submit">Entrar</button>
+      <p class="muted small">No hay registro público. Si no tienes una cuenta o necesitas recuperar el acceso, contacta al responsable autorizado.</p>
+    </form>
+  </section>
+  <div id="workspace" class="workspace" hidden>
+    <nav id="navigation" aria-label="Secciones"></nav>
+    <main id="content" tabindex="-1" aria-live="polite"><p class="muted">Cargando…</p></main>
+  </div>
+  <footer>Préstamos directos · Los vencimientos no liberan unidades ni cupo.</footer>
+  <dialog id="editor" aria-labelledby="dialog-title"></dialog>
+</body>
+</html>

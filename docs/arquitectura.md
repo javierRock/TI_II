@@ -1,4 +1,4 @@
-# Arquitectura actual del backend
+# Arquitectura actual
 
 ```text
 backend/
@@ -19,7 +19,7 @@ backend/
 │   ├── migrations/            Cambios versionados con node-pg-migrate
 │   └── sql/                   SQL inicial legible
 ├── scripts/                  Aprovisionamiento, comprobación y respaldos
-└── tests/                    Unitarias, integración y concurrencia
+└── tests/                    Unitarias, integración, concurrencia y navegador
 ```
 
 No se crean módulos vacíos. Autenticación, personas e inventario contienen
@@ -27,6 +27,20 @@ No se crean módulos vacíos. Autenticación, personas e inventario contienen
 Políticas sigue el mismo patrón y préstamos añade reglas de entrega/inspección.
 Auditoría contiene schemas, rutas de lectura y repositorio. Las rutas hacen la traducción
 HTTP mínima y delegan al servicio; no hay controladores adicionales sin necesidad.
+
+## Frontend del mismo origen
+
+`frontend/` contiene HTML5, CSS y módulos JavaScript nativos. Express sirve solo
+ese directorio después de montar la API; no hay servidor web separado, bundler ni CDN.
+El navegador organiza vistas y formularios; nunca SQL o decisiones de autorización.
+La cookie HttpOnly identifica sesión y el CSRF permanece en memoria. La recarga
+recupera identidad y CSRF con `/auth/me`. CSP limita scripts/estilos/conexiones al
+propio origen; no se construye HTML a partir de datos externos.
+
+Las tablas y selectores consultan páginas del servidor. Lecturas obsoletas se
+cancelan/descartan al cambiar sección; escrituras no se reintentan automáticamente.
+Los formularios bloquean doble envío y exigen confirmar inspecciones/autorizaciones.
+El frontend no sustituye la validación de API y PostgreSQL. Ver `docs/frontend.md`.
 
 ## Responsabilidades
 

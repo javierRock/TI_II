@@ -1,6 +1,7 @@
 # Sistema de préstamos de bienes
 
-Backend inicial con **Node.js 22+, Express 5 y PostgreSQL**. Basado en
+Sistema incremental con **Node.js 22+, Express 5 y PostgreSQL**, y frontend en
+**HTML5, CSS y JavaScript**, sin framework. Basado en
 `Analisis_Requisitos/main.tex` y sus secciones. La documentación original se conserva.
 
 ## Estado del backend
@@ -14,7 +15,7 @@ Backend inicial con **Node.js 22+, Express 5 y PostgreSQL**. Basado en
 - Comando seguro para crear el primer administrador con autorización confirmada.
 - Pruebas unitarias, de integración y de concurrencia sobre PostgreSQL real.
 
-**El backend ya cubre el flujo básico de préstamos directos; todavía no hay frontend.**
+**El backend y la interfaz cubren el flujo básico de préstamos directos.**
 No es un servicio listo para producción. Reservas, renovaciones, garantías,
 incidencias, pérdidas y sanciones se incorporarán por etapas.
 
@@ -45,6 +46,7 @@ las contraseñas de ejemplo antes de iniciar.
 | Base de pruebas | `prestamos_test` |
 | Usuario de migraciones | `prestamos_owner` |
 | Usuario de API | `prestamos_api` |
+| Interfaz web | `http://127.0.0.1:3000` |
 | API | `http://127.0.0.1:3000/api/v1/health` |
 
 Los datos se conservan en `.local/postgres/`, excluido de Git. Para detener
@@ -87,6 +89,7 @@ limitados y bases principal/pruebas sin sobrescribir contraseñas de roles exist
 ```sh
 npm test
 npm run test:integration
+npm run test:browser
 ```
 
 Integración exige URLs de pruebas separadas, con nombre terminado en `_test`.
@@ -96,6 +99,14 @@ de API también conservan fixtures. Sus políticas y cuentas son ficticias; no s
 cargan en la base principal. La suite de préstamos cierra las vigencias de las
 versiones de prueba que crea y espera a que terminen para permitir nuevas ejecuciones;
 no borra su historial. No ejecutar suites de integración en paralelo sobre la misma base.
+
+La suite de navegador usa Playwright y PostgreSQL de pruebas. En este equipo se
+ejecutó con Google Chrome instalado. En otro entorno se puede instalar Chromium
+con `npx playwright install chromium`, o indicar la ruta del navegador mediante
+`BROWSER_EXECUTABLE_PATH`. El modo sin sandbox **no se activa por defecto**; solo
+para un entorno de pruebas aislado que lo requiera, usar `BROWSER_NO_SANDBOX=1`.
+Las capturas se guardan en `.local/browser-tests/`, fuera de Git, con datos ficticios.
+La suite cierra su política de pruebas al terminar y conserva el historial.
 
 ## Primer administrador
 
@@ -119,6 +130,32 @@ unset ADMIN_PASSWORD
 La contraseña llega por stdin, no por argumentos ni historial. No usar una contraseña
 de ejemplo. El resto de las cuentas se registra mediante la API administrativa.
 Crear una cuenta con rol administrativo **no** otorga atribuciones administrativas.
+
+## Interfaz web
+
+Con el servidor iniciado, abre **http://127.0.0.1:3000**. No necesitas compilar el
+frontend ni ejecutar otro servidor. Express expone únicamente `frontend/`; la API
+y la interfaz comparten origen y no requieren CORS.
+
+- Todas las cuentas: acceso, catálogo filtrado/paginado y préstamos propios con detalle.
+- Con atribución administrativa: personas/cuentas/perfiles, planes, fichas y unidades,
+  mantenimiento/baja, políticas, entrega/devolución y auditoría de solo lectura.
+- Los selectores de titulares, bienes, planes y unidades incluyen búsqueda paginada:
+  no se limita la selección a los primeros registros de la base.
+- El navegador usa la cookie HttpOnly y conserva CSRF solo en memoria. Al recargar,
+  consulta `/auth/me`; no hay secretos en `localStorage` ni `sessionStorage`.
+- Formularios con confirmación explícita, errores legibles, bloqueo del doble envío
+  y advertencia si una escritura perdió su respuesta: consulta el registro antes de repetir.
+- Fechas y horas se introducen en la zona local del navegador y se envían como ISO
+  con zona. Los valores de políticas no se prellenan con condiciones inventadas.
+- Una devolución no presupone aptitud. Daños/faltantes impiden volver a disponible;
+  salir de mantenimiento requiere una operación administrativa separada.
+
+Se mantiene la validación de permisos e integridad en el servidor: ocultar una opción
+en la interfaz no reemplaza controles de seguridad. Sin administrador autorizado y
+sin políticas aprobadas no se pueden completar operaciones de préstamo.
+
+Detalles y límites: [docs/frontend.md](docs/frontend.md).
 
 ## Uso de la API
 
