@@ -225,6 +225,22 @@ bases `prestamos`, `prestamos_test` o `prestamos_demo` para cargar datos fictici
 
 La comprobación debe incluir arranque con volumen nuevo, login de las cuatro
 cuentas, entrega/devolución, auditoría, repetición del seed y reinicio sin pérdida.
-Las comprobaciones ejecutadas en este entorno se documentan en el resultado de
-la implementación. La disponibilidad de imágenes multi-arquitectura y la ausencia
-de scripts anfitriones no sustituyen pruebas reales en macOS y Windows.
+
+Validación realizada en **Linux AMD64**, con Docker Compose conectado a la API
+compatible de **Podman rootless** (el socket Docker del sistema no autoriza al
+usuario de este entorno):
+
+- Construcción de la imagen desde cero; instalación de dependencias y Argon2.
+- Arranque con volumen nuevo, roles, tres bases y todas las migraciones.
+- Health y HTML disponibles; login de las cuatro cuentas y permisos por rol.
+- Cinco fichas, siete unidades, política y préstamos iniciales correctos.
+- Entrega, historial personal y devolución mediante la API contenerizada.
+- Recreación de contenedores conservando cuentas y operaciones; seed sin duplicados.
+- Perfil normal arrancado sin personas, cuentas, bienes ni políticas ficticias.
+- Imagen con usuario no root y sin `.env`, datos locales ni secretos de mantenimiento
+  o seed en el servicio web.
+- 30 pruebas unitarias, 51 de integración, 10 de navegador y 7 de seed aprobadas.
+
+La disponibilidad de imágenes multi-arquitectura y la ausencia de scripts
+anfitriones no sustituyen pruebas reales en **macOS, Windows o ARM64**, pendientes
+de ejecución. No se afirma que sea un despliegue listo para producción.
