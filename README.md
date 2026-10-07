@@ -1,8 +1,7 @@
 # Sistema de préstamos de bienes
 
 Sistema incremental con **Node.js 22+, Express 5 y PostgreSQL**, y frontend en
-**HTML5, CSS y JavaScript**, sin framework. Basado en
-`Analisis_Requisitos/main.tex` y sus secciones. La documentación original se conserva.
+**HTML5, CSS y JavaScript**, sin framework.
 
 ## Estado del backend
 
