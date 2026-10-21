@@ -19,7 +19,9 @@
     "test": "node --test tests/unit/*.test.js",
     "test:integration": "node scripts/migrate.js --test && node --test --test-concurrency=1 tests/integration/*.test.js tests/concurrency/*.test.js",
     "test:demo": "node --test --test-concurrency=1 tests/demo/*.test.js",
-    "test:browser": "node scripts/migrate.js --test && node --test --test-concurrency=1 tests/browser/*.test.js"
+    "test:browser": "node scripts/migrate.js --test && node --test --test-concurrency=1 tests/browser/*.test.js",
+    "check": "node scripts/check.js",
+    "verify": "npm run check && npm test && npm run test:integration && npm run test:demo && npm run test:browser"
   },
   "dependencies": {
     "argon2": "^0.45.1",
