@@ -15,10 +15,10 @@ export async function openCount(client, userId) {
 }
 export async function insertLoan(client, actorId, input) {
   const result = await client.query(`INSERT INTO prestamos.prestamos
-    (solicitante_id, autorizado_por, unidad_id, inicio, vencimiento, modalidad, condicion_entrega, accesorios_entrega, observaciones_entrega)
-    VALUES ($1, $2, $3, clock_timestamp(), $4, $5, $6, $7::jsonb, $8) RETURNING *`,
+    (solicitante_id, autorizado_por, unidad_id, inicio, vencimiento, modalidad, condicion_entrega, accesorios_entrega, observaciones_entrega, reserva_id)
+    VALUES ($1, $2, $3, clock_timestamp(), $4, $5, $6, $7::jsonb, $8, $9) RETURNING *`,
   [input.solicitante_id, actorId, input.unidad_id, input.vencimiento, input.modalidad, input.condicion_entrega,
-    JSON.stringify(input.accesorios_entrega), input.observaciones_entrega ?? null]);
+    JSON.stringify(input.accesorios_entrega), input.observaciones_entrega ?? null, input.reserva_id ?? null]);
   await client.query("UPDATE prestamos.unidades_inventario SET estado = 'prestada', condicion_fisica = $2 WHERE id = $1", [input.unidad_id, input.condicion_entrega]);
   return result.rows[0];
 }

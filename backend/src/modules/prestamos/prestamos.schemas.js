@@ -10,7 +10,7 @@ const validPeriod = (value) => !value.desde || !value.hasta || new Date(value.ha
 export const ownQuery = z.strictObject(filters).refine(validPeriod, 'El fin del periodo debe ser posterior al inicio');
 export const adminQuery = z.strictObject({ ...filters, solicitante_id: id.optional() }).refine(validPeriod, 'El fin del periodo debe ser posterior al inicio');
 export const deliverySchema = z.strictObject({
-  solicitante_id: id, unidad_id: id, vencimiento: instant,
+  solicitante_id: id, unidad_id: id, reserva_id: id.optional(), vencimiento: instant,
   modalidad: z.enum(['en_sitio', 'retiro']), condicion_entrega: text(2000),
   accesorios_entrega: accessories, observaciones_entrega: nullableText(5000), confirmar: z.literal(true),
 });

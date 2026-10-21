@@ -6,9 +6,9 @@ import { testPool, rollback, expectSqlError, fixture, lend, returnLoan } from '.
 const pool = testPool();
 after(() => pool.end());
 
-test('esquema MVP tiene 12 tablas y solo cinco tipos de bienes', async () => {
+test('esquema del corte 50 tiene 13 tablas y solo cinco tipos de bienes', async () => {
   const tables = await pool.query("SELECT tablename FROM pg_tables WHERE schemaname = 'prestamos'");
-  assert.equal(tables.rowCount, 12);
+  assert.equal(tables.rowCount, 13);
   const types = await pool.query('SELECT codigo FROM prestamos.tipos_bien ORDER BY codigo');
   assert.deepEqual(types.rows.map((row) => row.codigo), ['carrito_robotica', 'libro', 'mesa_ping_pong', 'parlante', 'visor_3d']);
 });
