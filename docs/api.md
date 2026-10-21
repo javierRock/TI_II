@@ -118,7 +118,7 @@ ser positivos, únicos y compatibles con `smallint`; no se impone un máximo de 
 
 Unidades admite `q`, `tipo`, `disponible=true|false`, `pagina`, `limite`.
 `tipo` usa `libro`, `mesa_ping_pong`, `visor_3d`, `parlante` o `carrito_robotica`.
-No se admiten filtros temporales todavía: disponibilidad futura requiere reservas.
+Este listado muestra disponibilidad actual. Para un intervalo, usar `/reservas/disponibilidad` (ver [reservas](reservas.md)).
 Las búsquedas escapan `%`, `_` y `\`; todo el SQL usa parámetros.
 
 ## Administración del inventario
@@ -169,7 +169,7 @@ de baja no se reactiva. No existen endpoints DELETE.
 Las respuestas no publican SQL, hashes o tokens de sesión. Argon2id usa 64 MiB,
 tres iteraciones y paralelismo 1. El límite de login es en memoria y por proceso;
 se debe usar un almacenamiento compartido si se ejecutan múltiples instancias.
-La API aún no ofrece reset de contraseña, delegación administrativa, reservas,
+La API aún no ofrece reset de contraseña, delegación administrativa,
 renovaciones, garantías, incidencias, sanciones ni cierre por pérdida.
 La interfaz HTML5/CSS/JavaScript se sirve en `/` desde el mismo origen; ver [frontend.md](frontend.md).
 
@@ -315,3 +315,10 @@ No hay POST/PATCH/DELETE de eventos por HTTP. Correcciones de negocio generan nu
 eventos automáticamente y no reescriben el pasado. Los intentos de login rechazados
 se registran; otros rechazos de negocio revierten sus cambios, sin un evento adicional
 de intento en este MVP. Los filtros de fecha usan `[desde,hasta)`.
+
+## Reservas y entrega asociada
+
+El contrato completo de `/reservas` está en [reservas.md](reservas.md).
+`POST /prestamos` acepta ahora `reserva_id` opcional. Si se envía, el préstamo
+consume esa reserva en la misma transacción y conserva el vínculo en las consultas.
+Las entregas directas también respetan los intervalos y el cupo de reservas confirmadas.

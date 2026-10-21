@@ -244,3 +244,12 @@ usuario de este entorno):
 La disponibilidad de imágenes multi-arquitectura y la ausencia de scripts
 anfitriones no sustituyen pruebas reales en **macOS, Windows o ARM64**, pendientes
 de ejecución. No se afirma que sea un despliegue listo para producción.
+
+### Integración con el corte del 50 %
+
+La configuración Docker se conserva al integrar reservas y los demás cambios del
+corte. Los resultados anteriores corresponden a la validación de la base Docker.
+La verificación funcional posterior de la versión integrada en main está en
+[verificacion-50.md](verificacion-50.md): incluye las suites de configuración,
+integración, demostración y navegador. No equivale a repetir la construcción
+completa de la imagen ni las pruebas pendientes de otras plataformas.

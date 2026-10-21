@@ -13,7 +13,7 @@ archivo 0600. Se imprime el checksum SHA-256, no credenciales.
 
 La verificación requiere `ADMIN_DATABASE_URL` del servidor de desarrollo.
 Crea una base temporal con nombre aleatorio, restaura con `pg_restore`, compara
-conteos de las 12 tablas y elimina **solo esa base temporal creada por el proceso**.
+conteos de las 13 tablas y elimina **solo esa base temporal creada por el proceso**.
 Las FK y restricciones se restauran con el esquema. Ejecutar `--verify` sin
 escrituras concurrentes, ya que los conteos comparativos no comparten el snapshot
 interno de `pg_dump`.

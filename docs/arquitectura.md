@@ -11,7 +11,7 @@ backend/
 │   ├── middleware/           Autenticación, permisos, validación y CSRF
 │   ├── shared/               Esquemas y errores comunes
 │   ├── modules/              autenticacion, personas, inventario, politicas,
-│   │                        prestamos y auditoria
+│   │                        prestamos, reservas y auditoria
 │   └── db/
 │       ├── pool.js            Pool PostgreSQL con tiempos límite
 │       └── transaction.js     Una conexión para toda la transacción
@@ -113,10 +113,19 @@ cuando corresponda al implementar los siguientes casos de uso.
   de login ya están implementados. En producción se exige APP_ORIGIN HTTPS y
   cookies Secure; el proxy TLS y su configuración de red quedan por desplegar.
 - No hay auto-registro ni delegación administrativa por HTTP en este avance.
-- No se procesan reservas, renovaciones, garantías, pérdidas o sanciones; el esquema
+- No se procesan renovaciones, garantías, pérdidas o sanciones; el esquema
   rechaza políticas con obligaciones todavía no soportadas.
 - El contrato está en `docs/api.md`; los listados tienen paginación y los ids se
   mantienen como cadenas para no perder precisión.
 - Los deadlocks/conflictos transaccionales se traducen a 409. No se reintentan
   automáticamente escrituras; el cliente puede repetirlas después del rollback.
   Nunca confirmar operaciones parciales.
+
+## Incremento de reservas del corte 50 %
+
+`modules/reservas` conserva el patrón routes/schemas/service/repository. La migración
+`1791244800004_reservas` añade compromisos de intervalo y `prestamos.reserva_id` opcional.
+La entrega conserva sus reglas previas y añade comprobación de cruces/cupo y consumo
+atómico de la reserva. PostgreSQL protege exclusión de intervalos, transiciones y
+coherencia del vínculo. Mantenimiento/baja cancela compromisos afectados en la misma
+transacción. Ver [reservas](reservas.md) y [alcance](avance-50.md).

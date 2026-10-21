@@ -1,4 +1,4 @@
-# Interfaz web de préstamos directos
+# Interfaz web de préstamos y reservas
 
 ## Ejecutar
 
@@ -24,7 +24,7 @@ frontend/
     ├── ui.js              DOM seguro, tablas, formularios y paginación
     ├── lookup.js          selectores con búsquedas paginadas
     └── views/             catálogo/inventario, préstamos, personas/planes,
-                          políticas y auditoría
+                          políticas, reservas y auditoría
 ```
 
 JavaScript nativo con módulos ES; no hay bundler, framework, CDN ni fuentes externas.
@@ -104,7 +104,7 @@ comparten alcances de políticas. Las fixtures son ficticias e identificadas por
 
 ## Límites del avance
 
-No hay reservas, renovaciones, garantías, incidencias formales, pérdidas, sanciones,
+No hay renovaciones, garantías, incidencias formales, pérdidas, sanciones,
 recuperación de contraseña ni delegación administrativa. Tampoco selección futura
 de disponibilidad: el catálogo muestra únicamente disponibilidad física actual.
 El backend rechaza obligaciones no soportadas; el frontend no las simula.
@@ -116,3 +116,13 @@ Para otro flujo avanzado puede usarse el contrato de [api.md](api.md).
 
 No se afirma que el sistema esté listo para producción: faltan revisión institucional,
 pruebas con usuarios, evaluación de accesibilidad y endurecimiento operativo del despliegue.
+
+## Reservas
+
+**Mis reservas** permite buscar unidad, consultar intervalo y solicitar/cancelar
+reservas propias. **Gestión de reservas** permite decidir solicitudes, filtrar por
+estado/unidad y entregar desde una confirmada cuyo intervalo ya comenzó.
+La entrega usa el titular/unidad de la reserva y prellena su fin/modalidad; conserva
+la inspección y confirmación explícitas. Los errores de cupo, política, cruce o reloj
+provienen del servidor. Los estados cambian al consultar nuevamente la sección;
+la pantalla no usa un temporizador de actualización automática.

@@ -3,20 +3,27 @@
 Sistema incremental con **Node.js 22+, Express 5 y PostgreSQL**, y frontend en
 **HTML5, CSS y JavaScript**, sin framework.
 
-## Estado del backend
+## Estado del corte 50 %
 
-- Base PostgreSQL con 12 tablas de negocio/soporte y dos vistas.
+- Base PostgreSQL con 13 tablas de negocio/soporte y tres vistas.
 - Migraciones versionadas, usuarios separados y auditoría automática.
 - Integridad de entregas directas y devoluciones, cupos y políticas históricas.
 - API: sesiones, personas/cuentas, perfiles, planes académicos, catálogo/inventario,
-  políticas versionadas, entregas, devoluciones, préstamos propios y auditoría.
+  políticas versionadas, reservas por intervalo, entregas, devoluciones, préstamos propios y auditoría.
 - Contraseñas Argon2id, cookies HttpOnly y validación de permisos y CSRF.
 - Comando seguro para crear el primer administrador con autorización confirmada.
 - Pruebas unitarias, de integración y de concurrencia sobre PostgreSQL real.
 
-**El backend y la interfaz cubren el flujo básico de préstamos directos.**
-No es un servicio listo para producción. Reservas, renovaciones, garantías,
-incidencias, pérdidas y sanciones se incorporarán por etapas.
+**El backend y la interfaz cubren préstamos directos y reservas de unidades por intervalo.**
+Este corte corresponde a cinco de diez hitos de alcance, según la
+[planificación del 50 %](docs/avance-50.md). La cifra no representa cobertura de
+pruebas ni preparación productiva. Renovaciones, garantías, incidencias, pérdidas,
+sanciones y operación productiva siguen en las etapas siguientes.
+
+El [informe de avance del 50 %](docs/informe-avance-50.md) reúne objetivos,
+implementaciones, evidencia y trabajo pendiente. La estructura y los contratos
+están en el [índice de documentación](docs/README.md).
+La evidencia local está en [verificacion-50.md](docs/verificacion-50.md).
 
 ## Docker: Linux, macOS y Windows
 
@@ -63,8 +70,8 @@ y de la imagen. No subirlo ni compartirlo.
 ## Inicio rápido: PostgreSQL instalado localmente
 
 Requiere `node`, `npm`, `initdb`, `pg_ctl`, `pg_dump` y `pg_restore` en el PATH.
-En este equipo se utiliza PostgreSQL 18. La instancia del proyecto no modifica
-el servidor PostgreSQL existente en el puerto 5432.
+La opción nativa requiere PostgreSQL 18 y los binarios indicados. La instancia del
+proyecto utiliza un puerto independiente del servidor habitual en 5432.
 
 ```sh
 cd backend
@@ -108,10 +115,11 @@ uno o cambiar `APP_PORT` y `APP_ORIGIN` de Docker.
 ## Pruebas
 
 ```sh
-npm test
-npm run test:integration
-npm run test:browser
+npm run verify
 ```
+
+Ejecuta sintaxis, unidad, integración/concurrencia, demostración y navegador secuencialmente.
+Los comandos individuales siguen disponibles; ver [desarrollo](docs/desarrollo.md).
 
 Integración exige URLs de pruebas separadas, con nombre terminado en `_test`.
 Las pruebas comunes revierten sus cambios. Las pruebas de concurrencia conservan
@@ -121,9 +129,9 @@ cargan en la base principal. La suite de préstamos cierra las vigencias de las
 versiones de prueba que crea y espera a que terminen para permitir nuevas ejecuciones;
 no borra su historial. No ejecutar suites de integración en paralelo sobre la misma base.
 
-La suite de navegador usa Playwright y PostgreSQL de pruebas. En este equipo se
-ejecutó con Google Chrome instalado. En otro entorno se puede instalar Chromium
-con `npx playwright install chromium`, o indicar la ruta del navegador mediante
+La suite de navegador usa Playwright y PostgreSQL de pruebas. La verificación del
+corte utilizó Chromium. Puede instalarse con `npx playwright install chromium`,
+o indicarse la ruta de un navegador compatible mediante
 `BROWSER_EXECUTABLE_PATH`. El modo sin sandbox **no se activa por defecto**; solo
 para un entorno de pruebas aislado que lo requiera, usar `BROWSER_NO_SANDBOX=1`.
 Las capturas se guardan en `.local/browser-tests/`, fuera de Git, con datos ficticios.
@@ -158,9 +166,10 @@ Con el servidor iniciado, abre **http://127.0.0.1:3000**. No necesitas compilar 
 frontend ni ejecutar otro servidor. Express expone únicamente `frontend/`; la API
 y la interfaz comparten origen y no requieren CORS.
 
-- Todas las cuentas: acceso, catálogo filtrado/paginado y préstamos propios con detalle.
+- Todas las cuentas: acceso, catálogo filtrado/paginado, préstamos y reservas propias.
+- Docentes/estudiantes habilitados: solicitar/cancelar reservas y consultar disponibilidad por intervalo.
 - Con atribución administrativa: personas/cuentas/perfiles, planes, fichas y unidades,
-  mantenimiento/baja, políticas, entrega/devolución y auditoría de solo lectura.
+  mantenimiento/baja, políticas, confirmación/rechazo de reservas, entrega/devolución y auditoría de solo lectura.
 - Los selectores de titulares, bienes, planes y unidades incluyen búsqueda paginada:
   no se limita la selección a los primeros registros de la base.
 - El navegador usa la cookie HttpOnly y conserva CSRF solo en memoria. Al recargar,
@@ -180,7 +189,7 @@ Detalles y límites: [docs/frontend.md](docs/frontend.md).
 
 ## Uso de la API
 
-Contrato y ejemplos: [docs/api.md](docs/api.md). Tras crear el administrador e iniciar
+Contrato y ejemplos: [docs/api.md](docs/api.md), con el nuevo flujo en [docs/reservas.md](docs/reservas.md). Tras crear el administrador e iniciar
 el servidor, usar `POST /api/v1/auth/login`. La cookie HttpOnly identifica la sesión;
 el `csrf_token` de la respuesta se envía como `X-CSRF-Token` en escrituras autenticadas.
 

@@ -17,6 +17,7 @@ registra las versiones aplicadas y la administra **node-pg-migrate**.
 | bienes | Ficha de catálogo, no unidad prestable |
 | unidades_inventario | Código, custodia, identidad física, condición y estado |
 | politicas_prestamo | Versión general o por rol, aprobación, vigencia y reglas |
+| reservas | Solicitud e intervalo de unidad; decisión y motivo; estado efectivo derivado |
 | prestamos | Una unidad, responsable, entrega, devolución, inspección/destino y condiciones históricas |
 | eventos_historial | Registro append-only de cambios, actor y resultado |
 
@@ -29,6 +30,9 @@ erDiagram
     usuarios ||--o{ sesiones : inicia
     tipos_bien ||--o{ bienes : clasifica
     bienes ||--o{ unidades_inventario : describe
+    usuarios ||--o{ reservas : solicita
+    unidades_inventario ||--o{ reservas : compromete
+    reservas |o--o| prestamos : origina
     usuarios ||--o{ prestamos : solicita
     unidades_inventario ||--o{ prestamos : registra
     politicas_prestamo ||--o{ prestamos : fundamenta
@@ -62,7 +66,8 @@ devuelve, al receptor. Esas referencias no se eliminan en cascada.
 9. `estado_cierre` separa cierre de vencimiento. La vista `v_prestamos_estado`
    devuelve activo/vencido/devuelto según el reloj, sin tareas manuales.
 10. `v_disponibilidad_actual` no muestra titulares; no calcula disponibilidad de
-    intervalos futuros. Ese cálculo se añadirá con reservas y rangos `[inicio,fin)`.
+    intervalos futuros. La API de reservas consulta esos intervalos mediante rangos `[inicio,fin)`;
+    la vista actual excluye también reservas confirmadas que incluyen el instante presente.
 11. Las condiciones de entrega son inmutables. El primer avance no permite
     renovaciones, pérdidas ni reapertura de préstamos cerrados.
     Devolución conserva aptitud y destino físico declarado. Los nuevos cierres
@@ -90,3 +95,12 @@ vigencias de políticas. El índice parcial único protege las entregas.
 Las pruebas ejecutan restricciones, errores y concurrencia real en PostgreSQL.
 La meta de rendimiento de 1.000 unidades, 10.000 préstamos y diez sesiones
 queda pendiente de medir cuando existan los endpoints de negocio.
+
+## Reservas en el corte 50 %
+
+El esquema cuenta ahora con 13 tablas y tres vistas. `reservas` protege intervalos
+confirmados con una exclusión GiST; `v_reservas_estado` deriva el vencimiento.
+`prestamos.reserva_id` es opcional y único, sin alterar préstamos anteriores.
+Los triggers comprueban titular, unidad, modalidad, periodo, cupo y consumo atómico.
+Los índices de titular y estado/inicio apoyan los listados paginados.
+Ver [contrato y decisiones](reservas.md).
