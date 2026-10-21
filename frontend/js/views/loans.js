@@ -1,5 +1,5 @@
 import { field, listing, button, actions, badge, editor, showDetails, perform, saved, confirmField, accessoriesField, notify } from '../ui.js';
-import { date, label, lines, isoDate } from '../format.js';
+import { date, label, lines, isoDate, localDate } from '../format.js';
 import { lookup } from '../lookup.js';
 
 export async function loans(ctx, admin = false) {
@@ -30,9 +30,9 @@ async function loanDetail(ctx, id) {
     'Destino al recibir': label(r.destino_devolucion), 'Política aplicada (ID)': r.politica_condiciones_id,
     'Cupo aplicado': r.cupo_aplicado, 'Duración máxima (horas)': r.duracion_max_horas,
     'Tolerancia (horas)': r.tolerancia_horas, 'Retraso (segundos)': r.retraso_segundos,
-    'Observaciones de entrega': r.observaciones_entrega, 'Observaciones al recibir': r.observaciones_devolucion });
+    'Reserva de origen': r.reserva_id, 'Observaciones de entrega': r.observaciones_entrega, 'Observaciones al recibir': r.observaciones_devolucion });
 }
-export function deliveryEditor(ctx, unit = null) {
+export function deliveryEditor(ctx, unit = null, reservation = null) {
   const condition = field('condicion_entrega', 'Condición física inspeccionada', { type: 'textarea', required: true, maxlength: 2000, full: true, value: unit?.condicion_fisica });
   const accessories = accessoriesField('accesorios_entrega', 'Accesorios que se entregan', unit?.accesorios);
   let selection = 0;
@@ -52,18 +52,18 @@ export function deliveryEditor(ctx, unit = null) {
     } }) : null;
   editor({ title: 'Registrar entrega', description: unit ? `Unidad ${unit.codigo_inventario}. Verifica su condición y cada accesorio. El plazo y el cupo dependen de la política aprobada.`
     : 'Selecciona titular y unidad; verifica condición y accesorios. La API valida el plazo y cupo aprobados.',
-    fields: [lookup(ctx, { name: 'persona_id', title: 'Persona solicitante', path: '/personas', describe: (r) => `${r.nombre_completo} · ${r.documento}${r.activo ? '' : ' · Inactiva'}` }),
-      unitLookup, field('vencimiento', 'Vencimiento (hora local)', { type: 'datetime-local', step: 1, required: true }),
-      field('modalidad', 'Modalidad autorizada', { options: [['', 'Selecciona'], ['retiro', 'Retiro'], ['en_sitio', 'En sitio']], required: true }),
+    fields: [reservation ? null : lookup(ctx, { name: 'persona_id', title: 'Persona solicitante', path: '/personas', describe: (r) => `${r.nombre_completo} · ${r.documento}${r.activo ? '' : ' · Inactiva'}` }),
+      unitLookup, field('vencimiento', 'Vencimiento (hora local)', { type: 'datetime-local', step: 1, required: true, value: reservation ? localDate(reservation.fin) : '' }),
+      field('modalidad', 'Modalidad autorizada', { options: [['', 'Selecciona'], ['retiro', 'Retiro'], ['en_sitio', 'En sitio']], required: true, value: reservation?.modalidad }),
       condition, accessories, field('observaciones_entrega', 'Observaciones (opcional)', { type: 'textarea', maxlength: 5000, full: true }),
       confirmField('Confirmo la entrega real, la identidad del titular y la inspección de condición y accesorios.')],
     submit: 'Confirmar entrega',
     save: async (v) => {
-      const person = await ctx.api.request(`/personas/${v.persona_id}`);
+      const person = reservation ? { cuenta: { id: reservation.solicitante_id } } : await ctx.api.request(`/personas/${v.persona_id}`);
       ctx.signal.throwIfAborted();
       if (!person.cuenta) throw new Error('La persona seleccionada no tiene una cuenta. Regístrala antes de entregar.');
       return ctx.api.request('/prestamos', { method: 'POST', body: { solicitante_id: person.cuenta.id, unidad_id: unit?.id ?? v.unidad_id,
-        vencimiento: isoDate(v.vencimiento), modalidad: v.modalidad, condicion_entrega: v.condicion_entrega,
+        ...(reservation ? { reserva_id: reservation.id } : {}), vencimiento: isoDate(v.vencimiento), modalidad: v.modalidad, condicion_entrega: v.condicion_entrega,
         accesorios_entrega: lines(v.accesorios_entrega), observaciones_entrega: v.observaciones_entrega.trim() || null, confirmar: true } });
     }, done: saved(ctx, 'Entrega registrada. La unidad está prestada.'),
   });

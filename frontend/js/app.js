@@ -6,6 +6,7 @@ import { loans } from './views/loans.js';
 import { people, plans } from './views/people.js';
 import { policies } from './views/policies.js';
 import { audit } from './views/audit.js';
+import { reservations } from './views/reservations.js';
 
 const root = document.querySelector('#content');
 const login = document.querySelector('#login');
@@ -17,6 +18,8 @@ const api = createApi({ onUnauthorized: () => showLogin('Tu sesión terminó. In
 const routes = {
   catalogo: { title: 'Catálogo', render: catalog },
   mios: { title: 'Mis préstamos', render: loans },
+  misreservas: { title: 'Mis reservas', render: reservations },
+  reservas: { title: 'Gestión de reservas', admin: true, render: (ctx) => reservations(ctx, true) },
   prestamos: { title: 'Entregas y devoluciones', admin: true, render: (ctx) => loans(ctx, true) },
   inventario: { title: 'Inventario', admin: true, render: (ctx) => catalog(ctx, true) },
   fichas: { title: 'Fichas de bienes', admin: true, render: goods },

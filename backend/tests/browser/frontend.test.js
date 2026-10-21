@@ -297,6 +297,58 @@ test('editar inventario y salir de mantenimiento no reescribe la inspección his
   assert.deepEqual(loan, { devolucion_apta: false, destino_devolucion: 'mantenimiento' });
 });
 
+test('titular solicita reserva y administrador confirma y entrega sin reingresar titular/unidad', async () => {
+  const borrowerContext = await browser.newContext();
+  borrowerContext.setDefaultTimeout(8000);
+  const target = await borrowerContext.newPage();
+  target.on('pageerror', (error) => pageErrors.push(error.message));
+  try {
+    await login(target, username);
+    await target.locator('#navigation a[href="#misreservas"]').click();
+    await target.getByRole('button', { name: 'Solicitar reserva', exact: true }).click();
+    await target.locator('#editor input[type="search"]').fill(unitCode);
+    await target.locator('#editor').getByRole('button', { name: 'Buscar registros', exact: true }).click();
+    const option = target.locator('#editor select[name="unidad_id"] option').filter({ hasText: unitCode });
+    await option.waitFor({ state: 'attached' });
+    const unitId = await option.getAttribute('value');
+    await target.locator('#editor select[name="unidad_id"]').selectOption(unitId);
+    const start = new Date(Date.now() + 5000);
+    await target.locator('#editor input[name="inicio"]').fill(localDate(start));
+    await target.locator('#editor input[name="fin"]').fill(localDate(new Date(start.getTime() + 60000)));
+    await target.locator('#editor select[name="modalidad"]').selectOption('retiro');
+    await target.getByRole('button', { name: 'Consultar disponibilidad', exact: true }).click();
+    await target.locator('#editor [role="status"]').filter({ hasText: /Intervalo disponible ahora/ }).waitFor();
+    await target.locator('#editor input[name="confirmar"]').check();
+    const response = target.waitForResponse((r) => r.url().endsWith('/api/v1/reservas') && r.request().method() === 'POST');
+    await target.getByRole('button', { name: 'Enviar solicitud', exact: true }).click();
+    const created = await response;
+    assert.equal(created.status(), 201);
+    const reservation = await created.json();
+    await target.locator('#editor').waitFor({ state: 'hidden' });
+    await target.locator('tr').filter({ hasText: unitCode }).getByText('Solicitada', { exact: true }).waitFor();
+
+    await navigate('reservas');
+    await page.locator('#content input[name="unidad_id"]').fill(unitId);
+    await page.locator('#content .filters button[type="submit"]').click();
+    const row = page.locator('tr').filter({ hasText: unitCode });
+    await row.getByRole('button', { name: 'Confirmar', exact: true }).click();
+    await confirm(); assert.equal((await submit('Confirmar')).status(), 200); await dialogClosed();
+    await delay(Math.max(0, start.getTime() - Date.now()) + 100);
+    await page.locator('#content .filters button[type="submit"]').click();
+    await row.getByRole('button', { name: 'Registrar entrega', exact: true }).click();
+    assert.equal(await page.locator('#editor select[name="persona_id"]').count(), 0);
+    await confirm();
+    const delivered = await submit('Confirmar entrega');
+    assert.equal(delivered.status(), 201);
+    assert.equal((await delivered.json()).reserva_id, reservation.id);
+    await dialogClosed();
+    await row.getByText('Atendida', { exact: true }).waitFor();
+    await page.screenshot({ path: new URL('reservas.png', artifacts).pathname, fullPage: true });
+    await target.locator('#content .filters button[type="submit"]').click();
+    await target.locator('tr').filter({ hasText: unitCode }).getByText('Atendida', { exact: true }).waitFor();
+  } finally { await borrowerContext.close(); }
+});
+
 test('usuario normal solo consulta préstamos propios y al revocar sesión se limpia la interfaz', async () => {
   const borrowerContext = await browser.newContext();
   borrowerContext.setDefaultTimeout(8000);
@@ -307,7 +359,7 @@ test('usuario normal solo consulta préstamos propios y al revocar sesión se li
     await target.locator('#workspace').waitFor({ state: 'visible' });
     assert.equal(await target.locator('#navigation a[href="#personas"]').count(), 0);
     await target.locator('#navigation a[href="#mios"]').click();
-    await target.locator('tr').filter({ hasText: unitCode }).waitFor();
+    await target.locator('tr').filter({ hasText: unitCode }).first().waitFor();
     assert.equal(await target.getByRole('button', { name: 'Recibir', exact: true }).count(), 0);
     await target.evaluate(() => { location.hash = '#personas'; });
     await target.waitForURL(`${base}/#catalogo`);

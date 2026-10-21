@@ -1,4 +1,6 @@
 export const labels = {
+  solicitada: 'Solicitada', confirmada: 'Confirmada', rechazada: 'Rechazada', cancelada: 'Cancelada', atendida: 'Atendida', vencida: 'Vencida',
+  confirmar: 'Confirmar', rechazar: 'Rechazar', cancelar: 'Cancelar',
   personal_administrativo: 'Personal administrativo', docente: 'Docente', estudiante: 'Estudiante',
   disponible: 'Disponible', prestada: 'Prestada', mantenimiento: 'Mantenimiento', baja: 'Baja',
   activo: 'Activo', vencido: 'Vencido', devuelto: 'Devuelto', borrador: 'Borrador',
