@@ -1,0 +1,70 @@
+name: prestamos-mysql
+services:
+  mysql:
+    image: mysql:8.4.8
+    command: ["--log-bin-trust-function-creators=1", "--character-set-server=utf8mb4", "--collation-server=utf8mb4_0900_as_ci"]
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: DBsistema_prestamos
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?Configurar .env}
+      MYSQL_USER: prestamos_migrator
+      MYSQL_PASSWORD: ${DB_MIGRATION_PASSWORD:?Configurar .env}
+      DB_APP_PASSWORD: ${DB_PASSWORD:?Configurar .env}
+    ports:
+      - "127.0.0.1:${MYSQL_PORT:-3306}:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./mysql/usuarios.sh:/docker-entrypoint-initdb.d/usuarios.sh:ro,Z
+    healthcheck:
+      test: [CMD-SHELL, 'MYSQL_PWD="$$MYSQL_ROOT_PASSWORD" mysql -h 127.0.0.1 -uroot -e "SELECT 1" >/dev/null']
+      interval: 5s
+      timeout: 5s
+      retries: 40
+  preparar-db:
+    build:
+      context: ../..
+      dockerfile: infra/docker/Dockerfile
+    image: prestamos-mysql-app:local
+    command: [node, scripts/prepare.js]
+    environment:
+      DB_HOST: mysql
+      DB_NAME: DBsistema_prestamos
+      DB_USER: prestamos_migrator
+      DB_PASSWORD: ${DB_MIGRATION_PASSWORD:?Configurar .env}
+      SEED_DEMO: ${SEED_DEMO:-false}
+      DEMO_ADMIN_PASSWORD: ${DEMO_ADMIN_PASSWORD:-}
+      DEMO_USER_PASSWORD: ${DEMO_USER_PASSWORD:-}
+    depends_on:
+      mysql:
+        condition: service_healthy
+  app:
+    image: prestamos-mysql-app:local
+    build:
+      context: ../..
+      dockerfile: infra/docker/Dockerfile
+    init: true
+    read_only: true
+    tmpfs: [/tmp]
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    restart: unless-stopped
+    environment:
+      HOST: 0.0.0.0
+      PORT: "3000"
+      APP_ORIGIN: ${APP_ORIGIN:-http://localhost:3000}
+      DB_HOST: mysql
+      DB_NAME: DBsistema_prestamos
+      DB_USER: prestamos_app
+      DB_PASSWORD: ${DB_PASSWORD:?Configurar .env}
+    ports:
+      - "127.0.0.1:${APP_PORT:-3000}:3000"
+    depends_on:
+      preparar-db:
+        condition: service_completed_successfully
+    healthcheck:
+      test: [CMD, node, -e, "fetch('http://127.0.0.1:3000/api/v1/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+volumes:
+  mysql_data:

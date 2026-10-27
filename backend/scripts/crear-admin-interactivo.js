@@ -4,7 +4,7 @@ import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
 if (!process.stdin.isTTY || !process.stdout.isTTY) {
-  throw new Error('Usar docker compose run --rm manage admin-create en una terminal interactiva');
+  throw new Error('Ejecutar admin:interactive en una terminal interactiva');
 }
 let muted = false;
 const output = new Writable({
@@ -21,19 +21,38 @@ try {
   const nombre = (await rl.question('Nombre completo: ')).trim();
   const correo = (await rl.question('Correo: ')).trim();
   const usuario = (await rl.question('Usuario de acceso: ')).trim();
-  const confirmation = (await rl.question('¿Cuenta con autorización institucional? Escribir SI: ')).trim();
-  if (confirmation !== 'SI') throw new Error('No se confirmó la autorización; no se creó ninguna cuenta');
+  const confirmation = (
+    await rl.question('¿Cuenta con autorización institucional? Escribir SI: ')
+  ).trim();
+  if (confirmation !== 'SI')
+    throw new Error('No se confirmó la autorización; no se creó ninguna cuenta');
   process.stdout.write('Contraseña (12–128 caracteres; no se mostrará): ');
   muted = true;
   let password = await rl.question('');
   muted = false;
   process.stdout.write('\n');
   rl.close();
-  const result = spawnSync(process.execPath, [fileURLToPath(new URL('./crear-admin.js', import.meta.url)),
-    '--documento', documento, '--nombre', nombre, '--correo', correo, '--usuario', usuario,
-    '--password-stdin', '--confirmar-autorizacion'], {
-    input: password, stdio: ['pipe', 'inherit', 'inherit'], env: process.env,
-  });
+  const result = spawnSync(
+    process.execPath,
+    [
+      fileURLToPath(new URL('./crear-admin.js', import.meta.url)),
+      '--documento',
+      documento,
+      '--nombre',
+      nombre,
+      '--correo',
+      correo,
+      '--usuario',
+      usuario,
+      '--password-stdin',
+      '--confirmar-autorizacion',
+    ],
+    {
+      input: password,
+      stdio: ['pipe', 'inherit', 'inherit'],
+      env: process.env,
+    },
+  );
   password = '';
   process.exitCode = result.status ?? 1;
 } finally {

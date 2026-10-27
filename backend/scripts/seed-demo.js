@@ -1,16 +1,11 @@
-import pg from 'pg';
-import '../src/config/env.js';
-import { readDemoConfiguration } from './demo-config.js';
+import { readEnv } from '../src/config/env.js';
+import { createPool } from '../src/db/pool.js';
 import { seedDemo } from './seed-demo-data.js';
-
-const configuration = readDemoConfiguration();
-const pool = new pg.Pool({ connectionString: configuration.migration });
+if (process.env.SEED_DEMO !== 'true' || process.env.NODE_ENV === 'production')
+  throw new Error('La carga ficticia exige SEED_DEMO=true fuera de producción');
+const pool = createPool(readEnv());
 try {
-  const result = await seedDemo(pool, configuration);
-  console.log(result.creada ? 'Demostración creada: 4 cuentas, 5 fichas, 7 unidades y 2 préstamos ficticios.'
-    : 'Demostración ya inicializada: no se cambiaron datos ni contraseñas.');
-  console.log('Usuarios: demo.admin, demo.estudiante1, demo.estudiante2, demo.docente.');
-  console.log('Contraseñas: consultar DEMO_ADMIN_PASSWORD y DEMO_USER_PASSWORD en .env.docker.');
+  await seedDemo(pool, process.env);
 } finally {
   await pool.end();
 }

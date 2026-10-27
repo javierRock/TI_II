@@ -1,15 +1,39 @@
 export const labels = {
-  personal_administrativo: 'Personal administrativo', docente: 'Docente', estudiante: 'Estudiante',
-  disponible: 'Disponible', prestada: 'Prestada', mantenimiento: 'Mantenimiento', baja: 'Baja',
-  activo: 'Activo', vencido: 'Vencido', devuelto: 'Devuelto', borrador: 'Borrador',
-  programada: 'Programada', vigente: 'Vigente', expirada: 'Expirada', retiro: 'Retiro', en_sitio: 'En sitio',
+  personal_administrativo: 'Personal administrativo',
+  docente: 'Docente',
+  estudiante: 'Estudiante',
+  disponible: 'Disponible',
+  prestada: 'Prestada',
+  mantenimiento: 'Mantenimiento',
+  baja: 'Baja',
+  activo: 'Activo',
+  vencido: 'Vencido',
+  devuelto: 'Devuelto',
+  borrador: 'Borrador',
+  pendiente: 'Pendiente',
+  confirmada: 'Confirmada',
+  rechazada: 'Rechazada',
+  cancelada: 'Cancelada',
+  atendida: 'Atendida',
+  vencida: 'Vencida',
+  programada: 'Programada',
+  vigente: 'Vigente',
+  expirada: 'Expirada',
+  retiro: 'Retiro',
+  en_sitio: 'En sitio',
 };
 export const label = (value) => labels[value] ?? value ?? '—';
 export const isAdmin = (user) => Boolean(user?.atribucion_admin && user.rol !== 'estudiante');
 export function date(value) {
   if (!value) return '—';
   const instant = new Date(value);
-  return Number.isNaN(instant.getTime()) ? 'Fecha inválida' : new Intl.DateTimeFormat('es', { dateStyle: 'medium', timeStyle: 'short' }).format(instant);
+  return Number.isNaN(instant.getTime())
+    ? 'Fecha inválida'
+    : new Intl.DateTimeFormat('es-PE', {
+        dateStyle: 'medium',
+        timeStyle: 'short',
+        timeZone: 'America/Lima',
+      }).format(instant);
 }
 export function localDate(value) {
   if (!value) return '';
@@ -22,11 +46,21 @@ export function isoDate(value) {
   if (!value || Number.isNaN(parsed.getTime())) throw new Error('Indica una fecha y hora válidas.');
   return parsed.toISOString();
 }
-export const lines = (value) => String(value ?? '').split(/\r?\n/).map((item) => item.trim()).filter(Boolean);
+export const lines = (value) =>
+  String(value ?? '')
+    .split(/\r?\n/)
+    .map((item) => item.trim())
+    .filter(Boolean);
 export function query(values) {
-  return new URLSearchParams(Object.entries(values).filter(([, value]) => value !== '' && value !== undefined && value !== null)).toString();
+  return new URLSearchParams(
+    Object.entries(values).filter(
+      ([, value]) => value !== '' && value !== undefined && value !== null,
+    ),
+  ).toString();
 }
 export function errorText(error) {
-  const fields = Array.isArray(error.fields) ? error.fields.map((item) => `${item.campo || 'Formulario'}: ${item.mensaje}`).join('\n') : '';
+  const fields = Array.isArray(error.fields)
+    ? error.fields.map((item) => `${item.campo || 'Formulario'}: ${item.mensaje}`).join('\n')
+    : '';
   return [error.message, fields].filter(Boolean).join('\n');
 }

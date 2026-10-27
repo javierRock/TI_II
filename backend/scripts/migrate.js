@@ -1,42 +1,73 @@
-import { runner } from 'node-pg-migrate';
-import pg from 'pg';
-import { fileURLToPath, pathToFileURL } from 'node:url';
-import { databaseUrls } from '../src/config/env.js';
-import { identifier } from './provision-db.js';
+import { readdir, readFile } from 'node:fs/promises';
+import { createHash } from 'node:crypto';
+import { createPool } from '../src/db/pool.js';
+import { readEnv } from '../src/config/env.js';
+import { pathToFileURL } from 'node:url';
 
-export async function migrateDatabase({ migration, application }) {
-  await runner({
-    databaseUrl: migration,
-    dir: fileURLToPath(new URL('../db/migrations/', import.meta.url)),
-    direction: 'up',
-    migrationsTable: 'pgmigrations',
-    singleTransaction: true,
-    checkOrder: true,
-    log: (message) => console.log(message),
-  });
-  const client = new pg.Client({ connectionString: migration });
-  await client.connect();
-  try {
-    const role = identifier(decodeURIComponent(new URL(application).username));
-    await client.query('BEGIN');
-    await client.query(`GRANT USAGE ON SCHEMA prestamos TO ${role}`);
-    await client.query(`GRANT SELECT, INSERT, UPDATE ON ALL TABLES IN SCHEMA prestamos TO ${role}`);
-    await client.query(`GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA prestamos TO ${role}`);
-    await client.query(`REVOKE UPDATE, DELETE, TRUNCATE ON prestamos.eventos_historial FROM ${role}`);
-    // La cuenta del servicio no puede alterar esquemas, ejecutar migraciones ni borrar negocio.
-    await client.query(`REVOKE DELETE, TRUNCATE ON ALL TABLES IN SCHEMA prestamos FROM ${role}`);
-    await client.query('COMMIT');
-  } finally {
-    await client.end();
+export function statements(sql) {
+  let delimiter = ';',
+    buffer = '',
+    result = [];
+  for (const line of sql.split(/\r?\n/)) {
+    if (/^DELIMITER /i.test(line)) {
+      delimiter = line.split(/\s+/)[1];
+      continue;
+    }
+    buffer += line + '\n';
+    if (buffer.trimEnd().endsWith(delimiter)) {
+      result.push(buffer.trimEnd().slice(0, -delimiter.length));
+      buffer = '';
+    }
   }
-  console.log('Migraciones y permisos aplicados.');
+  if (buffer.trim() && !/^\s*--[^\n]*\s*$/.test(buffer))
+    throw new Error('Migración sin delimitador final');
+  return result;
 }
-
-if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+export async function migrateDatabase(pool) {
+  const c = await pool.connect();
+  let locked = false;
   try {
-    await migrateDatabase(databaseUrls({ test: process.argv.includes('--test') }));
-  } catch (error) {
-    console.error('Error al migrar:', error.code ?? error.message);
-    process.exitCode = 1;
+    const result = await c.query(
+      "SELECT GET_LOCK(CONCAT(DATABASE(),':migraciones'),30) AS adquirido",
+    );
+    if (Number(result.rows[0].adquirido) !== 1) throw new Error('Otra migración está en ejecución');
+    locked = true;
+    await c.query(
+      'CREATE TABLE IF NOT EXISTS schema_migrations (nombre VARCHAR(200) PRIMARY KEY, checksum CHAR(64) NOT NULL, completada BOOLEAN NOT NULL DEFAULT FALSE)',
+    );
+    const dir = new URL('../database/migrations/', import.meta.url);
+    for (const name of (await readdir(dir)).filter((x) => x.endsWith('.sql')).sort()) {
+      const sql = await readFile(new URL(name, dir), 'utf8');
+      const hash = createHash('sha256').update(sql).digest('hex');
+      const existing = (await c.query('SELECT * FROM schema_migrations WHERE nombre=?', [name]))
+        .rows[0];
+      if (existing) {
+        if (!existing.completada || existing.checksum !== hash)
+          throw new Error(
+            `Migración parcial o modificada: ${name}. Revisar antes de continuar; DDL no tiene rollback automático.`,
+          );
+        continue;
+      }
+      await c.query('INSERT INTO schema_migrations(nombre,checksum) VALUES (?,?)', [name, hash]);
+      for (const statement of statements(sql)) await c.query(statement);
+      await c.query('UPDATE schema_migrations SET completada=TRUE WHERE nombre=?', [name]);
+      console.log('Migración aplicada:', name);
+    }
+  } finally {
+    let releaseError;
+    try {
+      if (locked) await c.query("SELECT RELEASE_LOCK(CONCAT(DATABASE(),':migraciones'))");
+    } catch (error) {
+      releaseError = error;
+    }
+    c.release(releaseError);
+  }
+}
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  const pool = createPool(readEnv());
+  try {
+    await migrateDatabase(pool);
+  } finally {
+    await pool.end();
   }
 }

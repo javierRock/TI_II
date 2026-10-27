@@ -5,6 +5,7 @@ import { catalogRoutes, inventoryRoutes } from '../modules/inventario/inventario
 import { policyRoutes } from '../modules/politicas/politicas.routes.js';
 import { loanRoutes } from '../modules/prestamos/prestamos.routes.js';
 import { auditRoutes } from '../modules/auditoria/auditoria.routes.js';
+import { reservationRoutes } from '../modules/reservas/reservas.routes.js';
 
 export function apiRoutes(pool, config) {
   const router = Router();
@@ -15,6 +16,7 @@ export function apiRoutes(pool, config) {
   router.use('/inventario', inventoryRoutes(pool));
   router.use('/politicas', policyRoutes(pool));
   router.use('/prestamos', loanRoutes(pool));
+  router.use('/reservas', reservationRoutes(pool));
   router.use('/auditoria', auditRoutes(pool));
   return router;
 }

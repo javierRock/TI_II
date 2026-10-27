@@ -8,7 +8,8 @@ export function validate(schemas) {
       if (!result.success) {
         const error = new HttpError(400, 'Datos de solicitud inválidos', 'VALIDACION');
         error.campos = result.error.issues.map((issue) => ({
-          campo: [part, ...issue.path].join('.'), mensaje: issue.message,
+          campo: [part, ...issue.path].join('.'),
+          mensaje: issue.message,
         }));
         return next(error);
       }

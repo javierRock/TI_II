@@ -4,23 +4,22 @@ import { HttpError } from '../shared/errors.js';
 
 export function actorTransaction(pool, auth, operation, { admin = true, lockUserIds = [] } = {}) {
   return withTransaction(pool, async (client) => {
-    // Entregas/devoluciones bloquean todas sus cuentas en orden numérico.
-    // Evitar adquirir primero al actor y después a un solicitante de id menor.
-    if (lockUserIds.length) {
-      await client.query('SELECT id FROM prestamos.usuarios WHERE id = ANY($1::bigint[]) ORDER BY id FOR UPDATE',
-        [[auth.usuario_id, ...lockUserIds]]);
-    }
-    // Revalidar al escribir: el middleware pudo ejecutarse antes de una revocación.
-    const result = await client.query(`SELECT u.id, u.rol, u.atribucion_admin
-      FROM prestamos.usuarios u JOIN prestamos.personas p ON p.id = u.persona_id
-      JOIN prestamos.sesiones s ON s.usuario_id = u.id
-      WHERE u.id = $1 AND u.activo AND p.activo AND s.token_hash = $2
-        AND s.revocada_en IS NULL AND s.expira_en > clock_timestamp()
-      FOR UPDATE OF u, s`, [auth.usuario_id, tokenHash(auth.token)]);
-    const actor = result.rows[0];
-    if (!actor) throw new HttpError(401, 'Sesión inválida o vencida', 'NO_AUTENTICADO');
-    if (admin && (!actor.atribucion_admin || actor.rol === 'estudiante')) throw new HttpError(403, 'Se requiere atribución administrativa', 'SIN_PERMISO');
-    await client.query("SELECT set_config('app.actor_usuario_id', $1, true)", [actor.id]);
+    const ids = [...new Set([auth.usuario_id, ...lockUserIds])].sort((a, b) =>
+      BigInt(a) < BigInt(b) ? -1 : 1,
+    );
+    for (const id of ids)
+      await client.query('SELECT id FROM usuarios WHERE id = ? FOR UPDATE', [id]);
+    const { rows } = await client.query(
+      `SELECT u.id, u.rol, u.atribucion_admin FROM usuarios u
+      JOIN personas p ON p.id=u.persona_id JOIN sesiones s ON s.usuario_id=u.id
+      WHERE u.id=? AND u.activo AND p.activo AND s.token_hash=?
+      AND s.revocada_en IS NULL AND s.expira_en>UTC_TIMESTAMP(6) FOR UPDATE`,
+      [auth.usuario_id, tokenHash(auth.token)],
+    );
+    if (!rows[0]) throw new HttpError(401, 'Sesión inválida o vencida');
+    if (admin && (!rows[0].atribucion_admin || rows[0].rol === 'estudiante'))
+      throw new HttpError(403, 'Se requiere atribución administrativa');
+    await client.query('SET @actor_usuario_id = ?', [rows[0].id]);
     return operation(client);
   });
 }

@@ -3,6 +3,7 @@ export async function withTransaction(pool, operation) {
   let releaseError;
   try {
     await client.query('BEGIN');
+    await client.query('SET @actor_usuario_id = NULL, @actor_proceso = NULL');
     const result = await operation(client);
     await client.query('COMMIT');
     return result;
@@ -14,6 +15,11 @@ export async function withTransaction(pool, operation) {
     }
     throw error;
   } finally {
+    try {
+      await client.query('SET @actor_usuario_id = NULL, @actor_proceso = NULL');
+    } catch (error) {
+      releaseError = error;
+    }
     client.release(releaseError);
   }
 }

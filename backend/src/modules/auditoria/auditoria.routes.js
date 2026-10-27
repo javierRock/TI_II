@@ -9,7 +9,11 @@ import { listEvents, findEvent } from './auditoria.repository.js';
 export function auditRoutes(pool) {
   const router = Router();
   router.use(authenticate(pool), requireAdmin);
-  router.get('/', validate({ query: auditQuery }), async (req, res) => res.json(await listEvents(pool, req.data.query)));
-  router.get('/:id', validate({ params: idParams }), async (req, res) => res.json(requireRecord(await findEvent(pool, req.data.params.id))));
+  router.get('/', validate({ query: auditQuery }), async (req, res) =>
+    res.json(await listEvents(pool, req.data.query)),
+  );
+  router.get('/:id', validate({ params: idParams }), async (req, res) =>
+    res.json(requireRecord(await findEvent(pool, req.data.params.id))),
+  );
   return router;
 }

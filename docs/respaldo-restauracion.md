@@ -1,36 +1,40 @@
-# Respaldo y restauración
+# Respaldo y recuperación MySQL
 
-Desde `backend/`:
+Desde `infra/docker/`, crear un respaldo lógico consistente de InnoDB:
 
 ```sh
-npm run db:backup
-npm run db:backup -- --verify
+docker compose exec mysql sh -c 'MYSQL_PWD="$MYSQL_ROOT_PASSWORD" mysqldump -uroot --single-transaction --routines --triggers --no-tablespaces DBsistema_prestamos > /tmp/prestamos.sql'
+docker compose cp mysql:/tmp/prestamos.sql ./prestamos.backup.sql
 ```
 
-`pg_dump` crea un respaldo consistente en formato custom, sin propietarios ni
-privilegios, dentro de `.local/backups/`. El directorio tiene permiso 0700 y el
-archivo 0600. Se imprime el checksum SHA-256, no credenciales.
+La redirección binaria/texto se realiza dentro de Linux, no en PowerShell. Las
+comillas del primer comando sirven en Bash/Zsh/PowerShell; desde CMD usar PowerShell.
+El respaldo incluye datos personales y hashes: acceso restringido, cifrado si se
+transporta y nunca Git. `*.backup.sql` está excluido del repositorio.
 
-La verificación requiere `ADMIN_DATABASE_URL` del servidor de desarrollo.
-Crea una base temporal con nombre aleatorio, restaura con `pg_restore`, compara
-conteos de las 12 tablas y elimina **solo esa base temporal creada por el proceso**.
-Las FK y restricciones se restauran con el esquema. Ejecutar `--verify` sin
-escrituras concurrentes, ya que los conteos comparativos no comparten el snapshot
-interno de `pg_dump`.
+Restaurar primero en **otra instancia MySQL 8.4** con usuarios SQL preparados y
+una base vacía del mismo nombre. Copiar el archivo al contenedor de validación y
+ejecutar el cliente desde ahí:
 
-No se sobrescribe ni se elimina la base principal. Para una recuperación real:
+```sh
+docker compose cp ./prestamos.backup.sql mysql:/tmp/restaurar.sql
+docker compose exec mysql sh -c 'MYSQL_PWD="$MYSQL_ROOT_PASSWORD" mysql -uroot DBsistema_prestamos < /tmp/restaurar.sql'
+```
 
-1. Detener escrituras y preservar la base dañada para diagnóstico.
-2. Crear una base nueva con el propietario de migraciones.
-3. Restaurar el dump con clientes PostgreSQL compatibles.
-4. Verificar tablas, relaciones, préstamos abiertos, unidades y auditoría.
-5. Aplicar los permisos de ejecución con el script de migraciones apuntando a
-   la base restaurada: los dumps excluyen privilegios deliberadamente.
-6. Actualizar las URLs de conexión y probar antes de reabrir el servicio.
+Estos comandos de restauración deben apuntar al proyecto de validación, no al
+servidor principal. No sobreescribir una base con información más reciente.
+Verificar recuentos por tabla, relaciones, reservas confirmadas, préstamos abiertos,
+sesiones, políticas y auditoría. Comprobar login y una entrega/devolución de prueba
+en la copia antes de considerarla recuperable. Los definers de triggers/rutinas
+requieren que exista `prestamos_migrator` en la instancia destino.
 
-El `.env` y los roles/contraseñas no forman parte del dump. Conservar los secretos
-por un mecanismo separado y restringido. Los respaldos contienen datos personales:
-no publicarlos, cifrarlos si se transportan y mantener una copia fuera del equipo.
+No compartir carpetas binarias de volúmenes entre PostgreSQL/MySQL ni entre
+versiones mayores. No usar `down -v` como procedimiento de actualización.
 
-El script no programa respaldos automáticamente. La frecuencia diaria, retención,
-pérdida tolerable y tiempo de recuperación requieren aprobación institucional.
+## Comprobación local realizada
+
+Se generó un dump con rutinas y triggers de la base MySQL principal y se restauró
+en una instancia temporal con el mismo nombre de esquema. Se compararon todas las
+tablas por filas ordenadas y hash, y ambas vistas por resultado ordenado. La base
+principal no se modificó durante la restauración. El respaldo contiene únicamente
+la demo ficticia de esta instalación, no datos institucionales reales.

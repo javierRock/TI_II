@@ -9,30 +9,26 @@
   "scripts": {
     "start": "node src/server.js",
     "dev": "node --watch src/server.js",
-    "db:local": "node scripts/local-postgres.js",
-    "db:provision": "node scripts/provision-db.js",
     "db:migrate": "node scripts/migrate.js",
     "db:check": "node scripts/check-db.js",
-    "db:backup": "node scripts/backup-db.js",
     "admin:create": "node scripts/crear-admin.js",
+    "admin:interactive": "node scripts/crear-admin-interactivo.js",
     "db:seed:demo": "node scripts/seed-demo.js",
     "test": "node --test tests/unit/*.test.js",
-    "test:integration": "node scripts/migrate.js --test && node --test --test-concurrency=1 tests/integration/*.test.js tests/concurrency/*.test.js",
-    "test:demo": "node --test --test-concurrency=1 tests/demo/*.test.js",
-    "test:browser": "node scripts/migrate.js --test && node --test --test-concurrency=1 tests/browser/*.test.js"
+    "test:integration": "node --test --test-concurrency=1 tests/integration/*.test.js",
+    "test:browser": "node --test tests/browser/*.test.js"
   },
   "dependencies": {
     "argon2": "^0.45.1",
     "cookie-parser": "^1.4.7",
-    "dotenv": "^17.2.0",
     "express": "^5.1.0",
     "express-rate-limit": "^8.7.1",
     "helmet": "^8.1.0",
-    "pg": "^8.16.3",
+    "mysql2": "^3.14.0",
     "zod": "^4.1.0"
   },
   "devDependencies": {
-    "node-pg-migrate": "^9.0.0",
+    "prettier": "^3.6.0",
     "playwright": "^1.63.0"
   }
 }

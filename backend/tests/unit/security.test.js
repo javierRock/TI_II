@@ -1,6 +1,14 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { csrfToken, sessionToken, tokenHash, sameToken, validToken, hashPassword, verifyPassword } from '../../src/core/seguridad.js';
+import {
+  csrfToken,
+  sessionToken,
+  tokenHash,
+  sameToken,
+  validToken,
+  hashPassword,
+  verifyPassword,
+} from '../../src/core/seguridad.js';
 import { id } from '../../src/shared/schemas.js';
 import { accountSchema } from '../../src/modules/personas/personas.schemas.js';
 
@@ -27,10 +35,26 @@ test('Argon2id verifica claves y rechaza claves incorrectas', async () => {
 
 test('validación de identificadores no pierde precisión ni lanza errores con texto inválido', () => {
   assert.ok(id.safeParse('9223372036854775807').success);
-  for (const value of ['0', '-1', 'abc', '9223372036854775808', 1]) assert.equal(id.safeParse(value).success, false);
+  for (const value of ['0', '-1', 'abc', '9223372036854775808', 1])
+    assert.equal(id.safeParse(value).success, false);
 });
 
 test('crear cuenta no permite asignar atribución administrativa ni omitir perfil', () => {
-  assert.equal(accountSchema.safeParse({ nombre_usuario: 'docente', password: 'Clave de prueba segura 2026', rol: 'docente' }).success, false);
-  assert.equal(accountSchema.safeParse({ nombre_usuario: 'admin', password: 'Clave de prueba segura 2026', rol: 'personal_administrativo', atribucion_admin: true }).success, false);
+  assert.equal(
+    accountSchema.safeParse({
+      nombre_usuario: 'docente',
+      password: 'Clave de prueba segura 2026',
+      rol: 'docente',
+    }).success,
+    false,
+  );
+  assert.equal(
+    accountSchema.safeParse({
+      nombre_usuario: 'admin',
+      password: 'Clave de prueba segura 2026',
+      rol: 'personal_administrativo',
+      atribucion_admin: true,
+    }).success,
+    false,
+  );
 });

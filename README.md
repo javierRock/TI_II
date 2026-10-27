@@ -1,223 +1,108 @@
-# Sistema de préstamos de bienes
+# Préstamos de bienes — segundo examen
 
-Sistema incremental con **Node.js 22+, Express 5 y PostgreSQL**, y frontend en
-**HTML5, CSS y JavaScript**, sin framework.
+Aplicación de la Escuela Profesional de Ciencias de la Computación (UNSA).
+**Node.js 22, Express, MySQL 8.4.8 y HTML/CSS/JavaScript**, sin framework frontend.
 
-## Estado del backend
+## Arranque con Docker
 
-- Base PostgreSQL con 12 tablas de negocio/soporte y dos vistas.
-- Migraciones versionadas, usuarios separados y auditoría automática.
-- Integridad de entregas directas y devoluciones, cupos y políticas históricas.
-- API: sesiones, personas/cuentas, perfiles, planes académicos, catálogo/inventario,
-  políticas versionadas, entregas, devoluciones, préstamos propios y auditoría.
-- Contraseñas Argon2id, cookies HttpOnly y validación de permisos y CSRF.
-- Comando seguro para crear el primer administrador con autorización confirmada.
-- Pruebas unitarias, de integración y de concurrencia sobre PostgreSQL real.
-
-**El backend y la interfaz cubren el flujo básico de préstamos directos.**
-No es un servicio listo para producción. Reservas, renovaciones, garantías,
-incidencias, pérdidas y sanciones se incorporarán por etapas.
-
-## Docker: Linux, macOS y Windows
-
-Se puede ejecutar todo con **Docker Compose v2**, sin instalar Node.js ni PostgreSQL
-en el equipo. En macOS/Windows usar Docker Desktop con contenedores Linux; en Linux,
-Docker Engine y el plugin Compose, o Docker Desktop. La imagen no fija arquitectura:
-usa las variantes nativas de Node/PostgreSQL para AMD64 y ARM64.
-
-Guía completa: **[docs/docker.md](docs/docker.md)**.
-
-Desde la raíz, generar credenciales privadas una vez. En Linux/macOS:
+Toda la infraestructura está en [`infra/docker/`](infra/docker/README.md), no en
+el backend. Desde la raíz, crear una configuración privada una sola vez:
 
 ```sh
-docker run --rm --user "$(id -u):$(id -g)" -v "${PWD}:/workspace" -w /workspace node:22-bookworm-slim node backend/scripts/docker-config.js
+node infra/docker/generar-config.js
 ```
 
-En Windows PowerShell:
-
-```powershell
-docker run --rm -v "${PWD}:/workspace" -w /workspace node:22-bookworm-slim node backend/scripts/docker-config.js
-```
-
-Iniciar una demostración completa:
+Sin Node instalado, consultar las alternativas Docker/PowerShell en esa guía.
+Luego:
 
 ```sh
-docker compose --env-file .env.docker --profile demo up --build -d
+cd infra/docker
+docker compose up --build -d --wait
 ```
 
-Abrir **http://localhost:3000**. Usuario administrador: **`demo.admin`**; contraseña:
-el valor `DEMO_ADMIN_PASSWORD` de `.env.docker`. Los usuarios `demo.estudiante1`,
-`demo.estudiante2` y `demo.docente` usan `DEMO_USER_PASSWORD`.
+La base se llama exactamente **`DBsistema_prestamos`**. La web usa el puerto
+`APP_PORT` del archivo `infra/docker/.env` (3000 por defecto); MySQL, `MYSQL_PORT`
+(3306). Si la aplicación PostgreSQL anterior ocupa el 3000, elegir 3001 y cambiar
+también `APP_ORIGIN=http://localhost:3001`. No se detienen ni borran otros proyectos.
 
-La demo incluye un plan ficticio, cinco fichas, siete unidades, una política de
-prueba, un préstamo abierto y uno devuelto. Solo se carga en **`prestamos_demo`**,
-nunca en la base principal. No cambia contraseñas ni operaciones al repetirse.
-Para una instalación sin datos ficticios usar `--profile normal` y crear el primer
-administrador con el comando interactivo indicado en la guía. No iniciar ambos
-perfiles web a la vez: comparten el puerto de la interfaz.
+Con `SEED_DEMO=true`, la instalación vacía contiene:
 
-Los datos Docker están en un volumen independiente de `.local/postgres/`. No se
-importan automáticamente las cuentas locales. `.env.docker` está excluido de Git
-y de la imagen. No subirlo ni compartirlo.
+| Cuenta | Persona ficticia | Contraseña en el archivo privado |
+| --- | --- | --- |
+| `demo.admin` | Patricia Valdivia Torres | `DEMO_ADMIN_PASSWORD` |
+| `demo.estudiante1` | Diego Quispe Salazar | `DEMO_USER_PASSWORD` |
+| `demo.estudiante2` | Lucía Mamani Flores | `DEMO_USER_PASSWORD` |
+| `demo.docente` | Andrés Cáceres Medina | `DEMO_USER_PASSWORD` |
 
-## Inicio rápido: PostgreSQL instalado localmente
+Incluye seis libros reales (algoritmos, bases de datos, sistemas operativos,
+redes, IA y desarrollo de software), dos ejemplares simulados por título y los
+otros cuatro tipos de bienes: **16 unidades**. Los ISBN no verificados se omiten,
+no se inventan. Las personas, ejemplares, plan y política son de demostración,
+no datos institucionales autorizados. No se incluyen préstamos activos de fábrica:
+se crean desde la aplicación para demostrar el ciclo completo.
 
-Requiere `node`, `npm`, `initdb`, `pg_ctl`, `pg_dump` y `pg_restore` en el PATH.
-En este equipo se utiliza PostgreSQL 18. La instancia del proyecto no modifica
-el servidor PostgreSQL existente en el puerto 5432.
+El seed no cambia contraseñas ni duplica registros. Cambiar `.env` después de
+crear una cuenta **no cambia su contraseña**. No subir secretos, datos exportados
+o respaldos a Git.
 
-```sh
-cd backend
-npm ci
-npm run db:local -- start
-npm run db:migrate
-npm run db:check
-npm run dev
-```
+## Módulos
 
-El primer inicio genera un `.env` privado con contraseñas aleatorias si no existe.
-No compartir ni versionar ese archivo. Si se copió `.env.example`, reemplazar
-las contraseñas de ejemplo antes de iniciar.
+- **Usuarios:** personas, cuentas, perfiles académicos, sesiones y permisos.
+- **Catálogo:** fichas, ejemplares, búsqueda paginada y disponibilidad por intervalo.
+- **Reservas:** solicitar, confirmar/rechazar, cancelar y convertir en préstamo.
+- **Préstamos:** entrega directa o reservada, vencimientos, inspección y devolución.
+- Políticas versionadas y auditoría inmutable para el usuario de aplicación.
 
-| Parámetro | Valor local |
+Las reservas confirmadas usan intervalos `[inicio, fin)`. Se verifica el cupo
+simultáneo, no la suma de reservas consecutivas. Las operaciones bloquean cuentas
+y unidades y revalidan dentro de la transacción. Un vencido sigue ocupando el bien.
+
+## MySQL Workbench / DBeaver
+
+| Campo | Valor |
 | --- | --- |
-| Host PostgreSQL | `127.0.0.1` |
-| Puerto PostgreSQL | `55432` |
-| Base principal | `prestamos` |
-| Base de pruebas | `prestamos_test` |
-| Usuario de migraciones | `prestamos_owner` |
-| Usuario de API | `prestamos_api` |
-| Interfaz web | `http://127.0.0.1:3000` |
-| API | `http://127.0.0.1:3000/api/v1/health` |
+| Host | `127.0.0.1` |
+| Puerto | Valor `MYSQL_PORT`, normalmente `3306` |
+| Base / esquema | `DBsistema_prestamos` |
+| Usuario | `prestamos_editor` |
+| Contraseña inicial | Valor `DB_PASSWORD` en `infra/docker/.env` |
 
-Los datos se conservan en `.local/postgres/`, excluido de Git. Para detener
-únicamente esta instancia:
-
-```sh
-npm run db:local -- stop
-```
-
-Volver a iniciarla no elimina ni recrea sus datos. No usar `db:local` contra un
-cluster ajeno al proyecto. No hay arranque automático después de reiniciar el equipo.
-
-La alternativa Docker está descrita arriba y en `docs/docker.md`. No publica el
-puerto PostgreSQL, por lo que no colisiona con la instancia local de base de datos.
-El servidor web local y Docker sí comparten por defecto el puerto 3000: detener
-uno o cambiar `APP_PORT` y `APP_ORIGIN` de Docker.
+El editor consulta los registros y modifica columnas descriptivas de personas y
+libros. No modifica contraseñas, préstamos, reservas ni auditoría. El administrador
+web y el usuario SQL son cuentas distintas. [Guía](docs/mysql-workbench.md).
 
 ## Pruebas
 
+No ejecutarlas en la base principal. Con Node instalado, desde `backend/`:
+
 ```sh
+npm ci
 npm test
-npm run test:integration
-npm run test:browser
 ```
 
-Integración exige URLs de pruebas separadas, con nombre terminado en `_test`.
-Las pruebas comunes revierten sus cambios. Las pruebas de concurrencia conservan
-fixtures identificadas aleatoriamente **solo en la base de pruebas**. Las pruebas
-de API también conservan fixtures. Sus políticas y cuentas son ficticias; no se
-cargan en la base principal. La suite de préstamos cierra las vigencias de las
-versiones de prueba que crea y espera a que terminen para permitir nuevas ejecuciones;
-no borra su historial. No ejecutar suites de integración en paralelo sobre la misma base.
+Para integración y navegador, usar `DB_NAME=DBsistema_prestamos_test` y cargar las
+variables privadas. Ver los comandos multiplataforma en
+[`docs/pruebas-segundo-examen.md`](docs/pruebas-segundo-examen.md).
 
-La suite de navegador usa Playwright y PostgreSQL de pruebas. En este equipo se
-ejecutó con Google Chrome instalado. En otro entorno se puede instalar Chromium
-con `npx playwright install chromium`, o indicar la ruta del navegador mediante
-`BROWSER_EXECUTABLE_PATH`. El modo sin sandbox **no se activa por defecto**; solo
-para un entorno de pruebas aislado que lo requiera, usar `BROWSER_NO_SANDBOX=1`.
-Las capturas se guardan en `.local/browser-tests/`, fuera de Git, con datos ficticios.
-La suite cierra su política de pruebas al terminar y conserva el historial.
+## Sin Docker
 
-## Primer administrador
+Instalar MySQL 8.4 y Node 22. Preparar usuarios SQL limitados y seleccionar la base.
+Copiar `backend/.env.example` a `backend/.env`, configurar credenciales y ejecutar
+con `node --env-file=.env src/server.js`. Migrar por separado con una cuenta de
+mantenimiento: `node --env-file=.env.mantenimiento scripts/migrate.js`.
+El backend lee únicamente variables estándar; no detecta ni administra Docker.
 
-No se crea ningún usuario por defecto. Un responsable con autorización institucional
-debe ejecutar el bootstrap una sola vez después de las migraciones. El comando usa
-la conexión de migraciones y deja auditoría de la atribución inicial; no modifica
-cuentas existentes ni sirve para recuperar administradores desactivados.
+## Documentación
 
-Ejemplo en **Bash**, reemplazando los datos por los de la persona autorizada:
+- [Arquitectura](docs/arquitectura.md)
+- [Modelo de datos y relaciones](docs/modelo-datos.md)
+- [Diccionario de datos](docs/diccionario-datos.md)
+- [API](docs/api.md)
+- [Migración desde PostgreSQL](docs/migracion-postgresql-mysql.md)
+- [Respaldo y recuperación](docs/respaldo-restauracion.md)
 
-```bash
-read -r -s -p 'Contraseña (12–128 caracteres): ' ADMIN_PASSWORD
-printf '\n'
-printf '%s' "$ADMIN_PASSWORD" | npm run admin:create -- \
-  --documento '<documento real>' --nombre '<nombre real>' \
-  --correo '<correo válido>' --usuario '<usuario elegido>' \
-  --password-stdin --confirmar-autorizacion
-unset ADMIN_PASSWORD
-```
-
-La contraseña llega por stdin, no por argumentos ni historial. No usar una contraseña
-de ejemplo. El resto de las cuentas se registra mediante la API administrativa.
-Crear una cuenta con rol administrativo **no** otorga atribuciones administrativas.
-
-## Interfaz web
-
-Con el servidor iniciado, abre **http://127.0.0.1:3000**. No necesitas compilar el
-frontend ni ejecutar otro servidor. Express expone únicamente `frontend/`; la API
-y la interfaz comparten origen y no requieren CORS.
-
-- Todas las cuentas: acceso, catálogo filtrado/paginado y préstamos propios con detalle.
-- Con atribución administrativa: personas/cuentas/perfiles, planes, fichas y unidades,
-  mantenimiento/baja, políticas, entrega/devolución y auditoría de solo lectura.
-- Los selectores de titulares, bienes, planes y unidades incluyen búsqueda paginada:
-  no se limita la selección a los primeros registros de la base.
-- El navegador usa la cookie HttpOnly y conserva CSRF solo en memoria. Al recargar,
-  consulta `/auth/me`; no hay secretos en `localStorage` ni `sessionStorage`.
-- Formularios con confirmación explícita, errores legibles, bloqueo del doble envío
-  y advertencia si una escritura perdió su respuesta: consulta el registro antes de repetir.
-- Fechas y horas se introducen en la zona local del navegador y se envían como ISO
-  con zona. Los valores de políticas no se prellenan con condiciones inventadas.
-- Una devolución no presupone aptitud. Daños/faltantes impiden volver a disponible;
-  salir de mantenimiento requiere una operación administrativa separada.
-
-Se mantiene la validación de permisos e integridad en el servidor: ocultar una opción
-en la interfaz no reemplaza controles de seguridad. Sin administrador autorizado y
-sin políticas aprobadas no se pueden completar operaciones de préstamo.
-
-Detalles y límites: [docs/frontend.md](docs/frontend.md).
-
-## Uso de la API
-
-Contrato y ejemplos: [docs/api.md](docs/api.md). Tras crear el administrador e iniciar
-el servidor, usar `POST /api/v1/auth/login`. La cookie HttpOnly identifica la sesión;
-el `csrf_token` de la respuesta se envía como `X-CSRF-Token` en escrituras autenticadas.
-
-`APP_ORIGIN` por defecto es `http://127.0.0.1:<PORT>`. Si accedes con `localhost` u
-otro nombre, configura el origen exacto en `.env`. En producción debe ser HTTPS.
-Si `NODE_ENV=production` está definido en el entorno, no se carga `.env`: inyectar
-solo la URL restringida y configuración web en la API. Las URLs de propietario y
-administrador pertenecen a procesos separados de migración/mantenimiento; no montar
-el `.env` de desarrollo en el servicio desplegado.
-
-### Flujo operativo mínimo
-
-1. Crear el primer administrador autorizado.
-2. Registrar los planes/semestres reales, personas, cuentas y perfiles habilitados.
-3. Registrar fichas y unidades prestables bajo custodia de la Escuela.
-4. Crear una política general o por rol como borrador y aprobarla explícitamente,
-   con referencia a la autorización institucional.
-5. Registrar la entrega con inspección, todos los accesorios y vencimiento permitido.
-6. Registrar devolución e inspección; una unidad no apta no puede quedar disponible.
-7. Consultar préstamos propios/administrativos y los eventos de auditoría.
-
-Entregar exige una política aprobada aplicable. Aprobar otra versión no cambia los
-plazos ni condiciones de préstamos anteriores. Las obligaciones todavía no soportadas
-(garantías, renovación, multas y bloqueos) no se configuran ni se simulan en este avance.
-
-## Base de datos y evolución
-
-- SQL legible: `backend/db/sql/001_nucleo.sql`.
-- Migraciones: `backend/db/migrations/`.
-- Modelo y restricciones: [docs/modelo-datos.md](docs/modelo-datos.md).
-- Límites de responsabilidades: [docs/arquitectura.md](docs/arquitectura.md).
-- Recuperación: [docs/respaldo-restauracion.md](docs/respaldo-restauracion.md).
-
-La base principal solo incluye los cinco tipos permitidos. No contiene personas,
-cuentas institucionales, planes académicos ni políticas inventadas. Sin una política
-aprobada y un solicitante habilitado no se puede registrar una entrega.
-
-No modificar migraciones ya ejecutadas. Crear nuevas migraciones para cada cambio.
-Las migraciones actuales no tienen un `down` destructivo: para una corrección,
-aplicar una migración nueva o restaurar un respaldo comprobado.
+Esta rama es exclusivamente MySQL; el código PostgreSQL permanece en `main`.
+Los volúmenes PostgreSQL anteriores no se eliminan ni importan automáticamente.
+Reservas y préstamos están implementados; garantías, sanciones, pérdidas y
+renovaciones permanecen fuera del alcance. Es una entrega académica local,
+no un servicio público endurecido para producción.
