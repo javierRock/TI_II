@@ -1,4 +1,6 @@
 -- El editor gráfico no modifica reservas, préstamos, contraseñas ni auditoría.
+
+-- Consultas de negocio.
 GRANT SELECT ON personas TO 'prestamos_editor'@'%';
 GRANT SELECT ON tipos_bien TO 'prestamos_editor'@'%';
 GRANT SELECT ON bienes TO 'prestamos_editor'@'%';
@@ -9,6 +11,15 @@ GRANT SELECT ON politicas_prestamo TO 'prestamos_editor'@'%';
 GRANT SELECT ON eventos_historial TO 'prestamos_editor'@'%';
 GRANT SELECT ON planes_estudio TO 'prestamos_editor'@'%';
 GRANT SELECT ON perfiles_academicos TO 'prestamos_editor'@'%';
-GRANT SELECT(id,persona_id,nombre_usuario,rol,activo,atribucion_admin) ON usuarios TO 'prestamos_editor'@'%';
-GRANT UPDATE(nombre_completo,correo,contacto) ON personas TO 'prestamos_editor'@'%';
-GRANT UPDATE(nombre,descripcion,autor,edicion,isbn) ON bienes TO 'prestamos_editor'@'%';
+
+-- La cuenta de usuario se consulta sin hashes de contraseñas.
+GRANT SELECT (
+    id, persona_id, nombre_usuario, rol, activo, atribucion_admin
+) ON usuarios TO 'prestamos_editor'@'%';
+
+-- Edición limitada a columnas descriptivas.
+GRANT UPDATE (nombre_completo, correo, contacto)
+    ON personas TO 'prestamos_editor'@'%';
+
+GRANT UPDATE (nombre, descripcion, autor, edicion, isbn)
+    ON bienes TO 'prestamos_editor'@'%';

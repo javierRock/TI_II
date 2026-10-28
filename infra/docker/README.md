@@ -83,7 +83,10 @@ existentes. Las otras cuentas y perfiles se crean desde la aplicación.
 `docker compose up --build -d --wait` instala el nuevo código y migraciones pendientes.
 No modificar archivos SQL ya aplicados. El ejecutor verifica checksum y marca las
 migraciones incompletas: MySQL no revierte automáticamente DDL. Revisar el punto de
-fallo antes de reparar, nunca borrar el historial o el volumen.
+fallo antes de reparar, nunca borrar el historial o el volumen. El reformateo
+visual revisado de las diez migraciones iniciales se reconoce por sus hashes
+exactos, sin reejecutar DDL ni modificar el checksum histórico. Ver
+[`backend/database/README.md`](../../backend/database/README.md).
 
 ## Problemas frecuentes
 

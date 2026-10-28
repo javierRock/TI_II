@@ -1,0 +1,42 @@
+{
+  "001_tablas.sql": {
+    "anterior": "df4f2e3122213a8d287690ca5ce527f59a9a27d889294ff2af609701058c5b4a",
+    "actual": "af8bd422eebc2df3bc432c2e84777ef63ab7070e0ccceadc98416382bb163041"
+  },
+  "002_vistas.sql": {
+    "anterior": "9ba37825e5f00cb0fa94d81fd6867b3691f3ed8ab29f7ec03664ea381692ff1e",
+    "actual": "53f2e08bc54ff6803d889f9802597a94a2ce5a8171dc83bdfaa3eb89b122c7e3"
+  },
+  "003_protecciones.sql": {
+    "anterior": "22303cc473675e60703f355af3ca7663781e748ac8950691d289de8a8926edab",
+    "actual": "927782a5a216351de92eb0d802d9c85dcf04be8d4ddf721caec2c78a257e9d70"
+  },
+  "004_auditoria.sql": {
+    "anterior": "bde1260e6552b97672ab7a26ef934b39c8f38059ad38680995557a3c22ae990d",
+    "actual": "95df62b3dadc242eebab7dae98d24b4989095f696b0d09386617f88f9602976e"
+  },
+  "005_editor.sql": {
+    "anterior": "d956cca477949e866766558e6b2e9999768206657f51220122356f8605488b9b",
+    "actual": "19e6ba41072d42123f16b0b65a7155b8a211affe7151bd926f34b8d6c782d6e9"
+  },
+  "006_estados.sql": {
+    "anterior": "c4180e6ab8032c14d14e663847bd346854b4123a6b297f3ec47be381364529bc",
+    "actual": "41dd8a6b27df2641cddcb4e31434d6cc05d917dd799286be57423e7bad55df73"
+  },
+  "007_entrega_inmutable.sql": {
+    "anterior": "a2440b474f0eda5398d2c81016da80e39581c639f477b6d332e4f778130de2d0",
+    "actual": "efface91335b2df4007fb14e03135d14b583eb00626cff13500ae889b3ce9643"
+  },
+  "008_comprobaciones.sql": {
+    "anterior": "6750dbcb9c954fc887a8568bce4bbbbaeb67284709c33555cda6943933a2d571",
+    "actual": "9b0a4da6a60cee5ce2a97f23978949d2a6fd12666cadb081410421a5730a1b83"
+  },
+  "009_editor_vistas.sql": {
+    "anterior": "3abc337400e6c683eee5cd7805115325dddd00ff6526ea205e8dd1f164b57ef0",
+    "actual": "c3853b38a67fd3b8283070dccc1e19acb31a35c9e5a322584635fff45f07f60d"
+  },
+  "010_catalogo_usuarios.sql": {
+    "anterior": "826aaa8ab5e2204948da2e25319a65801fb72506d794b11c197a73e67d93d8e0",
+    "actual": "9fe6228cf63773d625a85b97b97fec5dc6637833f692cd5c5ea9d01fa29fd457"
+  }
+}

@@ -90,6 +90,7 @@ El backend lee únicamente variables estándar; no detecta ni administra Docker.
 - [Arquitectura](docs/arquitectura.md)
 - [Modelo de datos y relaciones](docs/modelo-datos.md)
 - [Diccionario de datos](docs/diccionario-datos.md)
+- [Organización y convenciones del SQL](backend/database/README.md)
 - [API](docs/api.md)
 - [Respaldo y recuperación](docs/respaldo-restauracion.md)
 

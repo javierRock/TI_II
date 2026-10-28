@@ -58,4 +58,8 @@ Los archivos SQL tienen un propósito por migración. Las rutinas usan DELIMITER
 como Workbench. Si una migración queda parcial, el ejecutor rechaza continuar:
 MySQL no admite rollback global de DDL. No cambiar un SQL ya aplicado.
 
+El reformateo puramente visual de las primeras diez migraciones tiene una
+compatibilidad acotada por pares SHA-256 exactos. Conserva el historial existente
+sin reejecutar SQL. Ver [organización y compatibilidad](../backend/database/README.md).
+
 El [diccionario de datos](diccionario-datos.md) describe las columnas y sus dominios.

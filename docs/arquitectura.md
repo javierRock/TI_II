@@ -5,7 +5,8 @@
 ```text
 backend/
   src/                    # Aplicación: configuración, conexión y módulos de negocio
-  database/migrations/    # SQL versionado; no modificar migraciones ya aplicadas
+  database/               # Guía de lectura y compatibilidad de formato SQL
+    migrations/           # Tablas, vistas, protecciones, auditoría y permisos
   scripts/                # Migración MySQL, administración y carga demo explícita
   .env.example            # Ejemplo para ejecución sin Docker
 frontend/                 # HTML, estilos y módulos JavaScript
@@ -13,7 +14,7 @@ infra/docker/
   mysql/usuarios.sh       # Usuarios SQL de la aplicación en volumen nuevo
   compose.yaml            # Servicios MySQL, preparación y aplicación
   .env.example            # Ejemplo exclusivo de infraestructura Docker
-docs/                     # Arquitectura, modelo, API, operación y pruebas
+docs/                     # Arquitectura, modelo, API, operación y demostración
 ```
 
 No hay configuración de bases en la raíz. La aplicación solo consume variables
@@ -36,6 +37,8 @@ Rutas HTTP → servicios → reglas y repositorios → MySQL
   préstamos, reservas y auditoría. Cada módulo separa rutas, esquemas, servicios,
   repositorios y reglas cuando son necesarias.
 - `backend/database/migrations/`: SQL versionado, independiente de Docker.
+- `backend/database/README.md`: mapa de responsabilidades y convenciones de lectura
+  del SQL. El formato revisado mantiene el orden y la lógica de las migraciones.
 - `frontend/js/views/`: pantallas por módulo y utilidades DOM seguras.
 
 ## Concurrencia

@@ -36,16 +36,24 @@ export async function migrateDatabase(pool) {
       'CREATE TABLE IF NOT EXISTS schema_migrations (nombre VARCHAR(200) PRIMARY KEY, checksum CHAR(64) NOT NULL, completada BOOLEAN NOT NULL DEFAULT FALSE)',
     );
     const dir = new URL('../database/migrations/', import.meta.url);
+    // Excepción acotada al reformateo revisado: no acepta cambios SQL arbitrarios.
+    // Se conserva el checksum histórico, sin reejecutar DDL ni reescribir el registro.
+    const formatos = JSON.parse(
+      await readFile(new URL('../database/formatos-compatibles.json', import.meta.url), 'utf8'),
+    );
     for (const name of (await readdir(dir)).filter((x) => x.endsWith('.sql')).sort()) {
       const sql = await readFile(new URL(name, dir), 'utf8');
       const hash = createHash('sha256').update(sql).digest('hex');
       const existing = (await c.query('SELECT * FROM schema_migrations WHERE nombre=?', [name]))
         .rows[0];
       if (existing) {
-        if (!existing.completada || existing.checksum !== hash)
+        const formato = formatos[name];
+        const soloFormato = formato?.anterior === existing.checksum && formato?.actual === hash;
+        if (!existing.completada || (existing.checksum !== hash && !soloFormato))
           throw new Error(
             `Migración parcial o modificada: ${name}. Revisar antes de continuar; DDL no tiene rollback automático.`,
           );
+        if (soloFormato) console.log('Migración verificada, solo cambió el formato:', name);
         continue;
       }
       await c.query('INSERT INTO schema_migrations(nombre,checksum) VALUES (?,?)', [name, hash]);
