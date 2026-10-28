@@ -42,6 +42,12 @@ docker compose ps -a
 2. `preparar-db`: aplica migraciones MySQL versionadas y, opcionalmente, demo.
 3. `app`: servidor web y frontend, sin credenciales de mantenimiento.
 
+El arranque crea solo `DBsistema_prestamos`: no prepara bases de pruebas.
+La configuración privada activa está en `infra/docker/.env`; para ejecutar sin
+Docker se usa `backend/.env`. No se necesitan archivos `.env` en la raíz.
+Para comprobar la aplicación, consultar la
+[guía de verificación manual](../../docs/demostracion.md).
+
 `preparar-db` debe terminar con código 0. Si falla, la aplicación no arranca.
 Los scripts de inicialización MySQL solo crean usuarios sobre un volumen nuevo;
 las migraciones del esquema se comprueban también en arranques posteriores.

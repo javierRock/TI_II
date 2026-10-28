@@ -1,7 +1,7 @@
 # Conexión desde MySQL Workbench o DBeaver
 
 El cliente se instala en el anfitrión; MySQL está dentro de Docker. No utilizar
-el controlador PostgreSQL ni su puerto 55432 para esta versión.
+otro controlador ni el puerto de la aplicación web para esta conexión.
 
 | Campo | Valor |
 | --- | --- |
@@ -35,3 +35,11 @@ Si el cliente muestra Connection refused, comprobar `docker compose ps` desde
 infra/docker, el puerto publicado y la salud de mysql. Si dice Access denied,
 comprobar usuario/contraseña: cambiar .env no modifica usuarios ya creados.
 No habilitar root sin contraseña ni publicar el servidor en todas las interfaces.
+
+## DBeaver: Public Key Retrieval is not allowed
+
+En esta instalación local, editar la conexión → Propiedades del controlador →
+`allowPublicKeyRetrieval=true`, mantener host `127.0.0.1` y puerto `3306`, y probar
+de nuevo. No requiere cambiar la contraseña ni el método de autenticación MySQL.
+La recuperación de claves debe limitarse a este entorno local de confianza; para
+servidores remotos configurar TLS con verificación del certificado del servidor.

@@ -1,40 +1,11 @@
-# Archivos auxiliares generados al compilar LaTeX
-*.aux
-*.bbl
-*.bcf
-*.blg
-*.dvi
-*.fdb_latexmk
-*.fls
-*.glg
-*.glo
-*.gls
-*.idx
-*.ilg
-*.ind
-*.lof
-*.log
-*.lot
-*.nav
-*.out
-*.run.xml
-*.snm
-*.synctex.gz
-*.toc
-*.vrb
-*.xdv
-
-# Documento compilado
-/Analisis_Requisitos/main.pdf
-
 # Backend: dependencias, secretos y datos locales
 node_modules/
 .env
 .env.*
 !.env.example
-!.env.docker.example
 .local/
-coverage/
+*.log
+*.out
 # Respaldos locales: pueden contener datos personales y hashes.
 *.dump
 *.export.json

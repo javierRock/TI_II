@@ -5,5 +5,3 @@
 **/.env
 **/.env.*
 **/*.dump
-assets
-backend/tests

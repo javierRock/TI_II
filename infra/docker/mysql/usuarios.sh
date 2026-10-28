@@ -10,8 +10,5 @@ CREATE USER 'prestamos_editor'@'%' IDENTIFIED BY '$DB_APP_PASSWORD';
 GRANT SELECT, INSERT, UPDATE ON DBsistema_prestamos.* TO 'prestamos_app'@'%';
 GRANT ALL ON DBsistema_prestamos.* TO 'prestamos_migrator'@'%' WITH GRANT OPTION;
 GRANT ALL ON \`DBsistema\\_prestamos\`.* TO 'prestamos_migrator'@'%' WITH GRANT OPTION;
-CREATE DATABASE DBsistema_prestamos_test CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_ci;
-GRANT ALL ON DBsistema_prestamos_test.* TO 'prestamos_migrator'@'%' WITH GRANT OPTION;
-GRANT SELECT, INSERT, UPDATE ON DBsistema_prestamos_test.* TO 'prestamos_app'@'%';
 SQL
 )

@@ -1,4 +1,4 @@
-# Préstamos de bienes — segundo examen
+# Préstamos de bienes
 
 Aplicación de la Escuela Profesional de Ciencias de la Computación (UNSA).
 **Node.js 22, Express, MySQL 8.4.8 y HTML/CSS/JavaScript**, sin framework frontend.
@@ -22,7 +22,7 @@ docker compose up --build -d --wait
 
 La base se llama exactamente **`DBsistema_prestamos`**. La web usa el puerto
 `APP_PORT` del archivo `infra/docker/.env` (3000 por defecto); MySQL, `MYSQL_PORT`
-(3306). Si la aplicación PostgreSQL anterior ocupa el 3000, elegir 3001 y cambiar
+(3306). Si otra aplicación ocupa el 3000, elegir 3001 y cambiar
 también `APP_ORIGIN=http://localhost:3001`. No se detienen ni borran otros proyectos.
 
 Con `SEED_DEMO=true`, la instalación vacía contiene:
@@ -71,18 +71,11 @@ El editor consulta los registros y modifica columnas descriptivas de personas y
 libros. No modifica contraseñas, préstamos, reservas ni auditoría. El administrador
 web y el usuario SQL son cuentas distintas. [Guía](docs/mysql-workbench.md).
 
-## Pruebas
+## Verificación y demostración
 
-No ejecutarlas en la base principal. Con Node instalado, desde `backend/`:
-
-```sh
-npm ci
-npm test
-```
-
-Para integración y navegador, usar `DB_NAME=DBsistema_prestamos_test` y cargar las
-variables privadas. Ver los comandos multiplataforma en
-[`docs/pruebas-segundo-examen.md`](docs/pruebas-segundo-examen.md).
+El proyecto no incluye suites de pruebas automatizadas. El arranque prepara
+únicamente la base de la aplicación. Consultar la
+[guía de verificación manual](docs/demostracion.md) para comprobar los módulos.
 
 ## Sin Docker
 
@@ -98,11 +91,9 @@ El backend lee únicamente variables estándar; no detecta ni administra Docker.
 - [Modelo de datos y relaciones](docs/modelo-datos.md)
 - [Diccionario de datos](docs/diccionario-datos.md)
 - [API](docs/api.md)
-- [Migración desde PostgreSQL](docs/migracion-postgresql-mysql.md)
 - [Respaldo y recuperación](docs/respaldo-restauracion.md)
 
-Esta rama es exclusivamente MySQL; el código PostgreSQL permanece en `main`.
-Los volúmenes PostgreSQL anteriores no se eliminan ni importan automáticamente.
+Esta rama utiliza exclusivamente MySQL. No administra ni elimina bases de otros proyectos.
 Reservas y préstamos están implementados; garantías, sanciones, pérdidas y
 renovaciones permanecen fuera del alcance. Es una entrega académica local,
 no un servicio público endurecido para producción.

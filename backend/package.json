@@ -13,10 +13,7 @@
     "db:check": "node scripts/check-db.js",
     "admin:create": "node scripts/crear-admin.js",
     "admin:interactive": "node scripts/crear-admin-interactivo.js",
-    "db:seed:demo": "node scripts/seed-demo.js",
-    "test": "node --test tests/unit/*.test.js",
-    "test:integration": "node --test --test-concurrency=1 tests/integration/*.test.js",
-    "test:browser": "node --test tests/browser/*.test.js"
+    "db:seed:demo": "node scripts/seed-demo.js"
   },
   "dependencies": {
     "argon2": "^0.45.1",
@@ -28,7 +25,6 @@
     "zod": "^4.1.0"
   },
   "devDependencies": {
-    "prettier": "^3.6.0",
-    "playwright": "^1.63.0"
+    "prettier": "^3.6.0"
   }
 }

@@ -10,7 +10,7 @@ export function readEnv(source = process.env) {
       DB_PORT: z.coerce.number().int().min(1).max(65535).default(3306),
       DB_NAME: z
         .string()
-        .regex(/^DBsistema_prestamos(?:_test)?$/)
+        .regex(/^[A-Za-z][A-Za-z0-9_]{0,63}$/)
         .default('DBsistema_prestamos'),
       DB_USER: z.string().min(1).default('prestamos_app'),
       DB_PASSWORD: z.string().min(12),

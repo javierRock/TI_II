@@ -28,7 +28,7 @@ sesiones, políticas y auditoría. Comprobar login y una entrega/devolución de 
 en la copia antes de considerarla recuperable. Los definers de triggers/rutinas
 requieren que exista `prestamos_migrator` en la instancia destino.
 
-No compartir carpetas binarias de volúmenes entre PostgreSQL/MySQL ni entre
+No compartir carpetas binarias de volúmenes entre motores distintos ni entre
 versiones mayores. No usar `down -v` como procedimiento de actualización.
 
 ## Comprobación local realizada

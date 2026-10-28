@@ -1,5 +1,26 @@
 # Arquitectura MySQL
 
+## Organización de archivos
+
+```text
+backend/
+  src/                    # Aplicación: configuración, conexión y módulos de negocio
+  database/migrations/    # SQL versionado; no modificar migraciones ya aplicadas
+  scripts/                # Migración MySQL, administración y carga demo explícita
+  .env.example            # Ejemplo para ejecución sin Docker
+frontend/                 # HTML, estilos y módulos JavaScript
+infra/docker/
+  mysql/usuarios.sh       # Usuarios SQL de la aplicación en volumen nuevo
+  compose.yaml            # Servicios MySQL, preparación y aplicación
+  .env.example            # Ejemplo exclusivo de infraestructura Docker
+docs/                     # Arquitectura, modelo, API, operación y pruebas
+```
+
+No hay configuración de bases en la raíz. La aplicación solo consume variables
+estándar de MySQL. No se incluyen suites ni dependencias de pruebas automatizadas.
+La herramienta de formato es de desarrollo y no se instala en la imagen de
+ejecución. Los archivos privados `.env` no se versionan.
+
 Monolito modular con Node/Express y frontend HTML/CSS/JavaScript del mismo origen.
 No hay microservicios, colas ni ORM. Docker está exclusivamente en `infra/docker/`.
 
