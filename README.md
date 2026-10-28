@@ -94,6 +94,4 @@ El backend lee únicamente variables estándar; no detecta ni administra Docker.
 - [Respaldo y recuperación](docs/respaldo-restauracion.md)
 
 Esta rama utiliza exclusivamente MySQL. No administra ni elimina bases de otros proyectos.
-Reservas y préstamos están implementados; garantías, sanciones, pérdidas y
-renovaciones permanecen fuera del alcance. Es una entrega académica local,
-no un servicio público endurecido para producción.
+Reservas y préstamos están implementados; garantías, sanciones, pérdidas.
